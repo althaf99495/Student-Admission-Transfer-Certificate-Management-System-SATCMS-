@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Setup - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-user-shield me-2"></i>Initial Admin Setup</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="lead">Welcome! Since no admin user exists, please create one now.</p>
+                <form method="POST" action="{{ url_for('auth.setup_admin') }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Admin Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required value="admin">
+                        <div class="invalid-feedback">Please enter a username.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$">
+                        <div class="invalid-feedback">Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.</div>
+                        <small class="form-text text-muted">Minimum 8 characters, with at least one uppercase, one lowercase, and one number.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                         <div class="invalid-feedback">Please confirm your password.</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-user-plus me-1"></i>Create Admin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+# ***file structure***
+student_tc_app/
+├── app.py                  ← Main Flask app entry point
+├── config.py               ← Config settings (DB, secrets, etc.)
+├── requirements.txt        ← Required Python packages
+├── college.db              ← SQLite database
+├── static/
+│   ├── css/
+│   │   └── styles.css
+│   ├── js/
+│   │   ├── student_form.js
+│   │   ├── course_form.js
+│   │   ├── tc_preview.js
+│   │   └── fee.js
+│   └── uploads/            ← (optional) for uploaded files/images
+├── templates/
+│   ├── base.html           ← Common layout
+│   ├── index.html          ← Homepage
+│   ├── register_student.html
+│   ├── edit_student.html
+│   ├── list_students.html
+│   ├── courses.html
+│   ├── add_course.html
+│   ├── fee_dashboard.html
+│   ├── tc_generate.html
+│   ├── tc_preview.html
+│   └── admission_register.html
+├── templates/auth/
+│   ├── login.html
+│   └── setup_admin.html
+├── templates/errors/
+│   ├── 400.html
+│   ├── 400_csrf.html
+│   ├── 404.html
+│   └── 500.html
+├── db/
+│   └── schema.sql          ← All CREATE TABLE SQLs
+├── models/
+│   └── db_pool.py          ← DB connection pooling
+├── routes/
+│   ├── __init__.py
+│   ├── students.py         ← Student registration/edit/view
+│   ├── courses.py
+│   ├── academic_years.py
+│   ├── fees.py
+│   ├── tc.py               ← TC generation + preview
+│   └── reports.py
+└── utils/
+    ├── admission_number.py ← Logic for generating admission number
+    ├── pdf_utils.py        ← Word/PDF generation
+    ├── validators.py       ← Data validation utilities
+    └── caching.py          ← Optional caching layer (if used)

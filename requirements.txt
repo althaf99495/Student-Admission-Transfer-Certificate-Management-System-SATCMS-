@@ -1,0 +1,28 @@
+# Core Flask dependencies
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Form handling and CSRF protection
+Flask-WTF==1.1.1
+WTForms==3.0.1
+
+# Document processing for TC and Reports
+python-docx==0.8.11
+docx2pdf
+
+# Date and time handling
+python-dateutil==2.8.2
+
+# Data validation
+email-validator==2.0.0
+
+# File handling (dependency for docx)
+Pillow
+
+# Development server (for production, use Gunicorn or uWSGI)
+python-dotenv==1.0.0
+
+# Production WSGI server (optional, but recommended)
+gunicorn==21.2.0
+
+num2words

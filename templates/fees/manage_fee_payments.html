@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Manage All Fee Payments - Student Portal{% endblock %}
+
+{% block head_extra %}
+<style>
+    .table th, .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tasks me-2"></i>Manage Fee Payments</h1>
+    {# Optional: Link to go to student list to initiate a new payment #}
+    <a href="{{ url_for('fees.select_student_to_record_payment') }}" class="btn btn-primary shadow-sm">
+        <i class="fas fa-plus fa-sm me-2"></i>Record New Payment (Select Student)
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+{# Add filtering options here if needed in the future (e.g., by student, date range) #}
+<div class="card shadow-sm">
+    <div class="card-header bg-light py-3">
+        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-alt me-2"></i>All Recorded Payments</h6>
+    </div>
+    <div class="card-body">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Pay ID</th>
+                        <th>Student Name</th>
+                        <th>Adm. No.</th>
+                        <th class="text-end">Amount Paid</th>
+                        <th>Payment Date</th>
+                        <th>Method</th>
+                        <th>Transaction ID</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pmt in payments %}
+                    <tr>
+                        <td>{{ pmt['id'] }}</td>
+                        <td>
+                            <a href="{{ url_for('students.view_student', student_id=pmt['student_id']) }}" title="View Student Profile">
+                                {{ pmt['student_name'] }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-info text-dark">{{ pmt['admission_no'] }}</span></td>
+                        <td class="text-end fw-bold">{{ pmt['amount_paid'] | currency }}</td>
+                        <td>{{ pmt['payment_date'] | datetime }}</td> {# Assuming you have a datetime filter #}
+                        <td>{{ pmt['payment_method'] }}</td>
+                        <td>{{ pmt['transaction_id'] or 'N/A' }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('fees.edit_fee_payment', payment_id=pmt['id']) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit Payment">
+                                <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
+                            </a>
+                            <form method="POST" action="{{ url_for('fees.delete_fee_payment', payment_id=pmt['id']) }}" 
+                                  class="d-inline confirm-delete-form"
+                                  data-item-id="{{ pmt['id'] }}" data-item-name="payment record">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Payment">
+                                    <i class="fas fa-trash-alt"></i> <span class="d-none d-md-inline">Delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-receipt fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No payment records found.</h5>
+            <p>You can start by <a href="{{ url_for('fees.select_student_to_record_payment') }}">recording a payment for a student</a>.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

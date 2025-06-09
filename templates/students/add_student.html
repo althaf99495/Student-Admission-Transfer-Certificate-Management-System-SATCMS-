@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Student | {{ super() }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .form-label {
+        font-weight: 500;
+    }
+    .section-header {
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: var(--bs-primary, #0d6efd);
+        border-bottom: 2px solid var(--bs-primary, #0d6efd);
+        padding-bottom: 0.5rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--bs-danger);
+    }
+    .invalid-feedback {
+        display: block;
+    }
+    #formMessages .alert {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Student Registration</h4>
+    </div>
+    <div class="card-body p-lg-5 p-md-4 p-3">
+        <div id="formMessages" class="my-3"></div>
+
+        <form id="studentRegistrationForm" method="POST" action="{{ url_for('students.add_student') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="section-header"><i class="fas fa-university me-2"></i>Academic Details</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="course_id" class="form-label">Course <span class="text-danger">*</span></label>
+                    <select class="form-select" id="course_id" name="course_id" required>
+                        <option value="">Select Course...</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}" {% if form_data and form_data.course_id == course.id|string %}selected{% endif %}>
+                                {{ course.course_name }} ({{ course.course_code }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select a course.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="academic_year_id" class="form-label">Academic Year <span class="text-danger">*</span></label>
+                    <select class="form-select" id="academic_year_id" name="academic_year_id" required>
+                        <option value="">Select Academic Year...</option>
+                        {% for year in academic_years %}
+                            <option value="{{ year.id }}" {% if form_data and form_data.academic_year_id == year.id|string %}selected{% endif %}>
+                                {{ year.academic_year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select an academic year.</div>
+                </div>
+            </div>
+            <div class="row">
+                 <div class="col-md-4 mb-3">
+                    <label for="admission_no" class="form-label">Admission Number</label>
+                    <input type="text" class="form-control" id="admission_no" name="admission_no" value="{{ form_data.admission_no if form_data else '' }}" readonly>
+                    <small class="form-text text-muted">Auto-generated upon submission.</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="date_of_admission" class="form-label">Date of Admission <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control datepicker" id="date_of_admission" name="date_of_admission" 
+                           value="{{ form_data.date_of_admission if form_data else now.strftime('%Y-%m-%d') }}" required>
+                    <div class="invalid-feedback">Please select the date of admission.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="type" class="form-label">Admission Type <span class="text-danger">*</span></label>
+                    <select class="form-select" id="type" name="type" required>
+                        <option value="" disabled {% if not (form_data and form_data.type) %}selected{% endif %}>Select Type...</option>
+                        <option value="New Admission" {% if form_data and form_data.type == 'New Admission' %}selected{% endif %}>New Admission</option>
+                        <option value="Readmission" {% if form_data and form_data.type == 'Readmission' %}selected{% endif %}>Readmission</option>
+                        <option value="Transfer" {% if form_data and form_data.type == 'Transfer' %}selected{% endif %}>Transfer</option>
+                    </select>
+                    <div class="invalid-feedback">Please select an admission type.</div>
+                </div>
+            </div>
+
+            <div class="section-header"><i class="fas fa-user-circle me-2"></i>Personal Information</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="student_name" class="form-label">Student Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="student_name" name="student_name" value="{{ form_data.student_name if form_data else '' }}" required>
+                    <div class="invalid-feedback">Student name is required.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="surname" class="form-label">Surname</label>
+                    <input type="text" class="form-control" id="surname" name="surname" value="{{ form_data.surname if form_data else '' }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="dob" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control datepicker" id="dob" name="dob" value="{{ form_data.dob if form_data else '' }}" required placeholder="YYYY-MM-DD">
+                    <div class="invalid-feedback">Date of birth is required.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+                    <select class="form-select" id="gender" name="gender" required>
+                        <option value="" disabled {% if not (form_data and form_data.gender) %}selected{% endif %}>Select Gender...</option>
+                        <option value="Male" {% if form_data and form_data.gender == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if form_data and form_data.gender == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if form_data and form_data.gender == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                    <div class="invalid-feedback">Please select a gender.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="aadhar_no" class="form-label">Aadhar Number</label>
+                    <input type="text" class="form-control" id="aadhar_no" name="aadhar_no" value="{{ form_data.aadhar_no if form_data else '' }}" maxlength="12" pattern="\d{12}">
+                    <small class="form-text text-muted">12 digits, no spaces.</small>
+                    <div class="invalid-feedback">Aadhar number must be 12 digits.</div>
+                </div>
+            </div>
+
+            <div class="section-header"><i class="fas fa-user-friends me-2"></i>Parent Details</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="father_name" class="form-label">Father's Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="father_name" name="father_name" value="{{ form_data.father_name if form_data else '' }}" required>
+                    <div class="invalid-feedback">Father's name is required.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="mother_name" class="form-label">Mother's Name</label>
+                    <input type="text" class="form-control" id="mother_name" name="mother_name" value="{{ form_data.mother_name if form_data else '' }}">
+                </div>
+            </div>
+
+            <div class="section-header"><i class="fas fa-address-card me-2"></i>Contact Information</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="phone_no" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone_no" name="phone_no" value="{{ form_data.phone_no if form_data else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ form_data.email if form_data else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="address1" class="form-label">Address Line 1</label>
+                <input type="text" class="form-control" id="address1" name="address1" value="{{ form_data.address1 if form_data else '' }}">
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="address2" class="form-label">Address Line 2</label>
+                    <input type="text" class="form-control" id="address2" name="address2" value="{{ form_data.address2 if form_data else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="address3" class="form-label">Address Line 3 (Village/Area)</label>
+                    <input type="text" class="form-control" id="address3" name="address3" value="{{ form_data.address3 if form_data else '' }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="town" class="form-label">Town/City</label>
+                    <input type="text" class="form-control" id="town" name="town" value="{{ form_data.town if form_data else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="state" class="form-label">State</label>
+                    <select class="form-select" id="state" name="state">
+                        <option value="" selected>Select State...</option>
+                        {% set states_list = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"] %}
+                        {% for state_item in states_list | sort %}
+                        <option value="{{ state_item }}" {% if form_data and form_data.state == state_item %}selected{% endif %}>{{ state_item }}</option>
+                        {% endfor %}
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" class="form-control mt-2 d-none" id="state_other" name="state_other" placeholder="Enter State if Other">
+                </div>
+            </div>
+
+            <div class="section-header"><i class="fas fa-info-circle me-2"></i>Additional Information</div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="nationality" class="form-label">Nationality</label>
+                    <select class="form-select" id="nationality" name="nationality">
+                        <option value="Indian" selected>Indian</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" class="form-control mt-2 d-none" id="nationality_other" name="nationality_other" placeholder="Enter Nationality">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="religion" class="form-label">Religion</label>
+                    <select class="form-select" id="religion" name="religion">
+                        <option value="" selected>Select Religion...</option>
+                        {% set religions = ["Hindu", "Islam", "Christian", "Sikh", "Buddhist", "Jain", "Parsi"] %}
+                        {% for rel in religions | sort %}
+                        <option value="{{ rel }}" {% if form_data and form_data.religion == rel %}selected{% endif %}>{{ rel }}</option>
+                        {% endfor %}
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" class="form-control mt-2 d-none" id="religion_other" name="religion_other" placeholder="Enter Religion">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="caste" class="form-label">Caste Category</label>
+                     <select class="form-select" id="caste" name="caste">
+                        <option value="" selected>Select Caste Category...</option>
+                        <option value="General">General</option>
+                        <option value="OBC">OBC</option>
+                        <option value="SC">SC</option>
+                        <option value="ST">ST</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" class="form-control mt-2 d-none" id="caste_other" name="caste_other" placeholder="Enter Caste Category">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="sub_caste" class="form-label">Sub-Caste/Specific Caste</label>
+                    <input type="text" class="form-control" id="sub_caste" name="sub_caste" value="{{ form_data.sub_caste if form_data else '' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="mother_tongue" class="form-label">Mother Tongue</label>
+                     <select class="form-select" id="mother_tongue" name="mother_tongue">
+                        <option value="" selected>Select Mother Tongue...</option>
+                        {% set languages = ["Telugu", "Hindi", "Urdu", "Tamil", "Kannada", "Malayalam", "Marathi", "Bengali", "Gujarati", "Odia", "Punjabi", "Assamese"] %}
+                        {% for lang in languages | sort %}
+                        <option value="{{ lang }}" {% if form_data and form_data.mother_tongue == lang %}selected{% endif %}>{{ lang }}</option>
+                        {% endfor %}
+                        <option value="Other">Other</option>
+                    </select>
+                     <input type="text" class="form-control mt-2 d-none" id="mother_tongue_other" name="mother_tongue_other" placeholder="Enter Mother Tongue">
+                </div>
+                 <div class="col-md-4 mb-3">
+                    <label for="conduct" class="form-label">Conduct</label>
+                    <input type="text" class="form-control" id="conduct" name="conduct" value="{{ form_data.conduct if form_data else 'Good' }}">
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="previous_college" class="form-label">Previous College/School</label>
+                    <input type="text" class="form-control" id="previous_college" name="previous_college" value="{{ form_data.previous_college if form_data else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="old_tc_no_date" class="form-label">Previous TC No. & Date</label>
+                    <input type="text" class="form-control" id="old_tc_no_date" name="old_tc_no_date" value="{{ form_data.old_tc_no_date if form_data else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="remarks" class="form-label">Remarks</label>
+                <textarea class="form-control" id="remarks" name="remarks" rows="2">{{ form_data.remarks if form_data else '' }}</textarea>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-end">
+                <button type="reset" class="btn btn-outline-secondary me-2"><i class="fas fa-undo me-1"></i>Reset</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Register Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg rounded-3">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel"><i class="fas fa-check-circle me-2"></i>Registration Successful</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="successMessageText"></p>
+                <div class="alert alert-light border-success">
+                    <strong>Admission Number:</strong> <span id="admissionNoDisplay" class="fw-bold"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('students.add_student') }}" class="btn btn-outline-primary">Register Another</a>
+                <a href="#" id="viewStudentBtn" class="btn btn-primary">View Student Details</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/student_form.js') }}"></script>
+{% endblock %}

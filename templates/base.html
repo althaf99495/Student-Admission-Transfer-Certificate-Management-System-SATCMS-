@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name or 'SATCMS' }}{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --svu-primary: #1e3a8a;
+            --svu-secondary: #3b82f6;
+            --svu-accent: #f59e0b;
+            --svu-dark: #1f2937;
+            --gradient-primary: linear-gradient(135deg, var(--svu-primary) 0%, var(--svu-secondary) 100%);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: var(--gradient-primary) !important;
+            box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15);
+            z-index: 1030; /* Ensure navbar is above most content, Bootstrap's default for fixed-top is 1030 */
+            backdrop-filter: blur(10px);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .university-header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(30, 58, 138, 0.2);
+        }
+        
+        .university-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .college-subtitle {
+            font-size: 1.1rem;
+            font-weight: 400;
+            margin: 0.25rem 0 0 0;
+            opacity: 0.95;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            transform: translateY(-1px);
+            color: var(--svu-accent) !important;
+        }
+        
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            z-index: 1040; /* Higher than navbar to ensure dropdowns appear above it and other content */
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        footer {
+            background: var(--gradient-primary);
+            color: white;
+            margin-top: auto;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- University Header -->
+    <div class="university-header">
+        <div class="container">
+            <h1 class="university-title">
+                <i class="fas fa-university me-3"></i>S.V. University
+            </h1>
+            <p class="college-subtitle">SVU College of CM & CS</p>
+            <p class="app-name-subtitle">{{ app_name or 'SATCMS' }}</p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <!-- <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-graduation-cap me-2"></i>
+                {{ app_name or 'SATCMS' }}
+            </a> -->
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if session.admin_logged_in %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %} href="{{ url_for('index') }}">
+                                <i class="fas fa-dashboard me-1"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('students.') %}active{% endif %}" href="#" id="studentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users me-1"></i>Students
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="studentsDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint == 'students.add_student' %}active{% endif %}" {% if request.endpoint == 'students.add_student' %}aria-current="page"{% endif %} href="{{ url_for('students.add_student') }}">
+                                    <i class="fas fa-user-plus me-1"></i>Add Student
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'students.list_students' %}active{% endif %}" {% if request.endpoint == 'students.list_students' %}aria-current="page"{% endif %} href="{{ url_for('students.list_students') }}">
+                                    <i class="fas fa-list me-1"></i>List Students
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('courses.') %}active{% endif %}" href="#" id="coursesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-book me-1"></i>Courses
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="coursesDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint == 'courses.add_course' %}active{% endif %}" {% if request.endpoint == 'courses.add_course' %}aria-current="page"{% endif %} href="{{ url_for('courses.add_course') }}">
+                                    <i class="fas fa-plus me-1"></i>Add Course
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'courses.list_courses' %}active{% endif %}" {% if request.endpoint == 'courses.list_courses' %}aria-current="page"{% endif %} href="{{ url_for('courses.list_courses') }}">
+                                    <i class="fas fa-list me-1"></i>List Courses
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('academic_years.') %}active{% endif %}" href="#" id="academicDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-calendar me-1"></i>Academic Years
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="academicDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint == 'academic_years.add_academic_year' %}active{% endif %}" {% if request.endpoint == 'academic_years.add_academic_year' %}aria-current="page"{% endif %} href="{{ url_for('academic_years.add_academic_year') }}">
+                                    <i class="fas fa-plus me-1"></i>Add Academic Year
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'academic_years.list_academic_years' %}active{% endif %}" {% if request.endpoint == 'academic_years.list_academic_years' %}aria-current="page"{% endif %} href="{{ url_for('academic_years.list_academic_years') }}">
+                                    <i class="fas fa-list me-1"></i>List Academic Years
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('fees.') %}active{% endif %}" href="#" id="feesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-money-check-alt me-1"></i>Fees
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="feesDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint in ['fees.select_student_to_record_payment', 'fees.record_payment'] %}active{% endif %}" {% if request.endpoint in ['fees.select_student_to_record_payment', 'fees.record_payment'] %}aria-current="page"{% endif %} href="{{ url_for('fees.select_student_to_record_payment') }}">
+                                    <i class="fas fa-plus-circle me-1"></i>Record Payment
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint in ['fees.select_student_to_view_fees', 'fees.view_student_fees'] %}active{% endif %}" {% if request.endpoint in ['fees.select_student_to_view_fees', 'fees.view_student_fees'] %}aria-current="page"{% endif %} href="{{ url_for('fees.select_student_to_view_fees') }}">
+                                    <i class="fas fa-history me-1"></i>View Fee History
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'fees.manage_fee_payments' %}active{% endif %}" {% if request.endpoint == 'fees.manage_fee_payments' %}aria-current="page"{% endif %} href="{{ url_for('fees.manage_fee_payments') }}">
+                                    <i class="fas fa-tasks me-1"></i>Manage All Payments
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'fees.add_fee_structure' %}active{% endif %}" href="{{ url_for('fees.add_fee_structure') }}">
+                                    <i class="fas fa-plus-square me-1"></i>Add Fee Structure
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'fees.list_fee_structures' %}active{% endif %}" href="{{ url_for('fees.list_fee_structures') }}">
+                                    <i class="fas fa-list-alt me-1"></i>List Fee Structures
+                                </a></li>
+                                <li><a class="dropdown-item {% if request.endpoint == 'fees.fee_summary' %}active{% endif %}" href="{{ url_for('fees.fee_summary') }}">
+                                    <i class="fas fa-chart-pie me-1"></i>Fee Summary
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint.startswith('tc.') %}active{% endif %}" {% if request.endpoint.startswith('tc.') %}aria-current="page"{% endif %} href="{{ url_for('tc.select_student') }}">
+                                <i class="fas fa-certificate me-1"></i>Transfer Certificate
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint.startswith('reports.') %}active{% endif %}" {% if request.endpoint.startswith('reports.') %}aria-current="page"{% endif %} href="{{ url_for('reports.index') }}">
+                                <i class="fas fa-chart-bar me-1"></i>Reports
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if session.admin_logged_in %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user me-1"></i>{{ current_user_username or 'Admin' }}
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item {% if request.endpoint == 'auth.change_password' %}active{% endif %}" {% if request.endpoint == 'auth.change_password' %}aria-current="page"{% endif %} href="{{ url_for('auth.change_password') }}">
+                                    <i class="fas fa-key me-1"></i>Change Password
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4 flex-grow-1">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle me-2"></i>
+                                {% elif category == 'danger' or category == 'error' %}
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle me-2"></i>
+                                {% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-md-start">
+                    <p class="mb-1">
+                        <strong>S.V. University</strong> - SVU College of CM & CS
+                    </p>
+                    <p class="mb-0 opacity-75">
+                        &copy; {{ current_year }} {{ app_name or 'SATCMS' }} - Student Management System
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1">
+                        <i class="fas fa-code me-1"></i>Developed by S.Althaf
+                    </p>
+                    <p class="mb-0 opacity-75">
+                        M.Sc Computer Science (2024-2026)
+                    </p>
+                    
+            <style>
+                .app-name-subtitle {
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    margin: 0.1rem 0 0 0;
+                    opacity: 0.9;
+                }
+            </style>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CSRF Token Meta Tag -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- Common JS -->
+    <script>
+        // CSRF Token Setup
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", $('meta[name=csrf-token]').attr('content'));
+                }
+            }
+        });
+
+        $(document).ready(function() {
+            // Auto-hide alerts after 5 seconds
+            $('.alert').delay(5000).fadeOut('slow');
+            
+            // Confirm delete actions
+            $('.delete-btn').click(function(e) {
+                if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Format date inputs
+            $('input[type="date"]').each(function() {
+                if (!this.value) {
+                    this.value = new Date().toISOString().split('T')[0];
+                }
+            });
+
+            // Enhanced form validation feedback
+            $('.needs-validation').on('submit', function(e) {
+                if (!this.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                $(this).addClass('was-validated');
+            });
+
+            // Smooth scrolling for anchor links
+            $('a[href*="#"]').on('click', function(e) {
+                if (this.hash !== '') {
+                    e.preventDefault();
+                    const hash = this.hash;
+                    $('html, body').animate({
+                        scrollTop: $(hash).offset().top - 100
+                    }, 500);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

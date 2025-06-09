@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ super() }}{% endblock %}
+
+{% block content %}
+{% if session.admin_logged_in %}
+    <!-- Dashboard Content -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-dashboard me-2"></i>Dashboard
+                <small class="text-muted">Welcome back, {{ current_user_username }}!</small>
+            </h1>
+        </div>
+    </div>
+
+    {% if stats %}
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.total_students or 0 }}</h4>
+                            <p class="card-text">Total Students</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('students.list_students') }}" class="text-white text-decoration-none">
+                        View Details <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.total_courses or 0 }}</h4>
+                            <p class="card-text">Active Courses</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-book fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('courses.list_courses') }}" class="text-white text-decoration-none">
+                        View Details <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.total_academic_years or 0 }}</h4>
+                            <p class="card-text">Academic Years</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('academic_years.list_academic_years') }}" class="text-white text-decoration-none">
+                        View Details <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.total_tcs or 0 }}</h4>
+                            <p class="card-text">TCs Issued</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-certificate fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('tc.select_student') }}" class="text-white text-decoration-none">
+                        Generate TC <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">Quick Actions</h4>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Add New Student</h5>
+                    <p class="card-text">Register a new student admission</p>
+                    <a href="{{ url_for('students.add_student') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Student
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-certificate fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Generate TC</h5>
+                    <p class="card-text">Issue Transfer Certificate for students</p>
+                    <a href="{{ url_for('tc.select_student') }}" class="btn btn-success">
+                        <i class="fas fa-file-pdf me-1"></i>Generate TC
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">View Reports</h5>
+                    <p class="card-text">Generate admission register and other reports</p>
+                    <a href="{{ url_for('reports.index') }}" class="btn btn-info">
+                        <i class="fas fa-file-alt me-1"></i>View Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    {% if stats and stats.recent_students %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Admissions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Admission No</th>
+                                    <th>Student Name</th>
+                                    <th>Course</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in stats.recent_students %}
+                                <tr>
+                                    <td>{{ student.admission_no }}</td>
+                                    <td>{{ student.student_name }}</td>
+                                    <td>{{ student.course_code }}</td>
+                                    <td>{{ student.date_of_admission }}</td>
+                                    <td>
+                                        <a href="{{ url_for('students.view_student', student_id=student.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <!-- Welcome Page for Non-Logged In Users -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="jumbotron bg-light p-5 rounded">
+                <h1 class="display-4">
+                    <i class="fas fa-graduation-cap text-primary me-3"></i>
+                    Welcome to SATCMS
+                </h1>
+                <p class="lead">Student Admission & Transfer Certificate Management System</p>
+                <hr class="my-4">
+                <p>Efficiently manage student admissions, records, and transfer certificates for your educational institution.</p>
+                <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login to Continue
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-center mb-4">System Features</h3>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Student Management</h5>
+                    <p class="card-text">Complete student records management with admission tracking and detailed information storage.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-certificate fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Transfer Certificates</h5>
+                    <p class="card-text">Generate and manage transfer certificates with automated numbering and PDF generation.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Reports & Analytics</h5>
+                    <p class="card-text">Comprehensive reporting system with admission registers and statistical analysis.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}CSRF Error{% endblock %}
+{% block content %}
+<div class="alert alert-danger mt-5 text-center">
+    <h2>Invalid or missing CSRF token</h2>
+    <p>{{ error }}</p>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary mt-3">Go to Login</a>
+</div>
+{% endblock %}

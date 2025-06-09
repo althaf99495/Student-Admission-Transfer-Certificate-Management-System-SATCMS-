@@ -1,0 +1,125 @@
+Student Admission & Transfer Certificate Management System (SATCMS)
+Application Title: Student Admission & Transfer Certificate Management System (SATCMS)
+
+1. Objective & Vision:
+
+Primary Purpose: To provide a robust and user-friendly web application for educational institutions to efficiently manage student admissions, track academic data, process fee payments, and automate the generation of Transfer Certificates (TCs). It aims to digitize manual processes and reduce administrative overhead.
+Overarching Vision: To become a comprehensive, scalable, and reliable administrative backbone for educational institutions, potentially expanding to include academic performance tracking, attendance management, and more.
+Target Users: College/School Administrators, Clerical Staff, Accountants.
+2. Core Functionality (MVP - Minimum Viable Product):
+
+Authentication: Admin login, logout, and first-time admin setup.
+Student Management: Register new students, view student profiles, search/filter students.
+Academic Structure: Manage (add, edit) courses and academic years.
+Fee Management: Define fee structures, record student payments, display balance.
+Transfer Certificate (TC): Generate TC with auto-numbering, preview, and store records.
+Reporting: Generate a basic Admission Register report.
+3. Key Features & Modules (Detailed Breakdown):
+
+A. Authentication Module:
+
+Admin Login/Logout 
+
+First-time Admin Setup (/auth/setup-admin) 
+
+Password Hashing (using werkzeug.security)
+Session Management (e.g., Flask sessions)
+CSRF Protection (e.g., Flask-WTF)
+B. Student Management:
+
+Student Registration Form with comprehensive fields (name, father's name, DOB, address, etc.) 
+
+Input Validation (server-side and client-side where possible) 
+Automatic Admission Number Generation (e.g., COURSE_CODE/YEAR/SERIAL_NO) 
+
+Student Listing with Filters (by course, academic year) and Search (by name, admission no.) 
+Individual Student Profile View (displaying all details, academic info, fee status) 
+(Post-MVP) Edit Student Details 
+(Post-MVP) Student Photo Upload
+C. Academic Structure:
+
+Course CRUD (Create, Read, Update, Delete) 
+Academic Year CRUD 
+Course Types (PA, R, SF, SS) 
+Schema for courses and academic_years tables 
+D. Fee Management:
+
+Define Fee Structure per Course and Academic Year 
+
+Record Fee Payments (amount, date, method) 
+
+Track Total Amount Paid and Remaining Balance for each student 
+
+Display Payment History for a student 
+(Post-MVP) Payment Receipt Generation (PDF) 
+Schema for fee_structure and student_fee_payments tables 
+E. Transfer Certificate (TC) Module:
+
+TC Generation Form 
+Auto-generate TC Number 
+Populate data from student profile into a Word document template 
+
+Convert generated Word document to PDF for preview/download 
+
+Store TC record metadata in DB (TC number, issue date, notes) 
+(Post-MVP) TC Revocation/Re-issue Logic 
+Schema for transfer_certificates table 
+F. Reports:
+
+Admission Register Report (PDF format) 
+
+(Post-MVP) Fee Collection Report 
+(Post-MVP) TC Issuance Report 
+G. Frontend UI:
+
+Base HTML layout with navigation 
+Login and Setup Admin forms 
+Responsive design using Bootstrap 5 
+Form templates for Add/Edit operations 
+(Post-MVP) JavaScript for client-side validation and interactivity 
+4. Technical Stack & Environment:
+
+Backend: Python 3.10+, Flask 
+Frontend: HTML5, Jinja2 (for templating), Bootstrap 5 
+Database: SQLite (college.db) 
+Document Handling: python-docx for Word generation, docx2pdf for PDF conversion 
+Version Control: Git
+5. Design & User Experience (UX):
+
+Clean, intuitive, and consistent UI/UX.
+Responsive layout for desktop browsers (primary focus).
+Error messages should be user-friendly and informative.
+6. Non-Functional Requirements:
+
+Performance: Generate TC within 5 seconds. Search responsiveness within 1 second for up to 1000 students.
+Security: Password hashing (using werkzeug.security), SQL injection prevention (using parameterized queries), input validation, CSRF protection.
+Reliability: Proper error handling and logging.
+Maintainability: Modular code structure, clear separation of concerns (routes, models, utils).
+Scalability: Designed to handle initial administrative data for a medium-sized college (e.g., hundreds of students per academic year).
+7. Deliverables:
+
+Complete Source Code 
+Sample college.db database with test entries 
+requirements.txt file listing all Python dependencies 
+
+README.md file with installation steps, default admin credentials, and a list of key routes/features 
+
+(Optional) Architecture Diagram
+(Optional) Screen recording or demo video of key functionalities 
+(Optional) Sample TC Word template with merge fields
+8. Optional/Future Enhancements (Phase 2+):
+
+Session timeout and management 
+Role-based access control (e.g., different permissions for principal, staff, accountant) 
+Delete student with confirmation 
+Bulk import/export of student data (CSV) 
+Validate overpayments in fee management 
+Fee Collection Report (with filters) 
+TC Issuance Report 
+Export reports to Excel 
+Unit and Integration Tests 
+Deployment to a cloud platform (e.g., Render/Heroku/VPS) 
+9. Constraints & Assumptions:
+
+The project is to be completed within 5 days, with core MVP features prioritized. 
+Initial deployment target is a single instance using SQLite.

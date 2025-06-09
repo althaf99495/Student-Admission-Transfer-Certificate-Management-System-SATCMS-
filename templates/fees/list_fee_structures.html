@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Fee Structures - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+    <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-cogs me-2"></i>Manage Fee Structures</h1>
+    <a href="{{ url_for('fees.add_fee_structure') }}" class="btn btn-primary shadow-sm">
+        <i class="fas fa-plus fa-sm me-2"></i>Add New Fee Structure
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-light py-3">
+        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-alt me-2"></i>Existing Fee Structures</h6>
+    </div>
+    <div class="card-body">
+        {% if fee_structures %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Course Name</th>
+                        <th>Academic Year</th>
+                        <th class="text-end">Total Fee</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fs in fee_structures %}
+                    <tr>
+                        <td>{{ fs['id'] }}</td>
+                        <td>{{ fs['course_name'] }}</td>
+                        <td>{{ fs['academic_year'] }}</td>
+                        <td class="text-end">₹{{ "%.2f"|format(fs['total_fee']) }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('fees.edit_fee_structure', structure_id=fs['id']) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit Structure">
+                                <i class="fas fa-edit"></i> <span class="d-none d-md-inline">Edit</span>
+                            </a>
+                            <form method="POST" action="{{ url_for('fees.delete_fee_structure', structure_id=fs['id']) }}" 
+                                  class="d-inline confirm-delete-form"
+                                  data-item-id="{{ fs['id'] }}" data-item-name="fee structure">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Structure">
+                                    <i class="fas fa-trash-alt"></i> <span class="d-none d-md-inline">Delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search-dollar fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No fee structures found.</h5>
+            <p>You can start by <a href="{{ url_for('fees.add_fee_structure') }}">adding a new fee structure</a>.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

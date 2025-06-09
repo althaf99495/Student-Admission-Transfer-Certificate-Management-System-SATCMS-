@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Available Reports</h3>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('reports.admission_register') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-address-book me-2 text-primary"></i>Admission Register
+                        <small class="d-block text-muted">View and generate the student admission register.</small>
+                    </a>
+                    <!-- Add new report links here -->
+                    <a href="{{ url_for('reports.fee_collection_report') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-dollar-sign me-2 text-success"></i>Fee Collection Report
+                        <small class="d-block text-muted">Generate a report of collected fees within a date range.</small>
+                    </a>
+                    <a href="{{ url_for('reports.tc_issued_report') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-certificate me-2 text-info"></i>TC Issued Report
+                        <small class="d-block text-muted">Generate a report of Transfer Certificates issued within a date range.</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

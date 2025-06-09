@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Fee Collection Report | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h4 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Generate Fee Collection Report</h4>
+    </div>
+    <div class="card-body">
+        <p>Select filters to generate the fee collection report.</p>
+        <form method="POST" action="{{ url_for('reports.fee_collection_report') }}" class="p-3 bg-light border rounded">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label for="course_id" class="form-label">Filter by Course</label>
+                    <select name="course_id" id="course_id" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.course_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="academic_year_id" class="form-label">Filter by Academic Year</label>
+                    <select name="academic_year_id" id="academic_year_id" class="form-select">
+                        <option value="">All Academic Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}">{{ year.academic_year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-download me-1"></i>Generate Report</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer text-end">
+        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Reports</a>
+    </div>
+</div>
+{% endblock %}

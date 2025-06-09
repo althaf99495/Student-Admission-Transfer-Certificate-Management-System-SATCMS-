@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Select Student for Fees | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h4 class="mb-0"><i class="fas fa-search-dollar me-2"></i>{{ action_title or "Select Student" }}</h4>
+    </div>
+    <div class="card-body">
+        {% if show_filters %}
+        <form method="GET" action="{{ filter_form_action or request.path }}" id="filterStudentForm" class="mb-4 p-3 bg-light border rounded">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="course_id_filter" class="form-label">Filter by Course</label>
+                    <select id="course_id_filter" name="course_id" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course['id'] }}" {% if course['id'] == selected_course_id %}selected{% endif %}>
+                            {{ course['course_name'] }} ({{ course['course_code'] }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="academic_year_id_filter" class="form-label">Filter by Academic Year</label>
+                    <select id="academic_year_id_filter" name="academic_year_id" class="form-select">
+                        <option value="">All Academic Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year['id'] }}" {% if year['id'] == selected_academic_year_id %}selected{% endif %}>
+                            {{ year['academic_year'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-info w-100"><i class="fas fa-filter me-1"></i>Filter</button>
+                </div>
+            </div>
+        </form>
+        {% endif %}
+
+        <form id="selectStudentForm" class="mb-4 p-3 {% if show_filters %}bg-white{% else %}bg-light{% endif %} border rounded">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label for="student_id" class="form-label">Select Student {{ '(Filtered)' if show_filters and (selected_course_id or selected_academic_year_id) else '' }}</label>
+                    <select id="student_id" name="student_id" class="form-select" required>
+                        <option value="">Type to search or select...</option>
+                        {% for student in students %}
+                        <option value="{{ student['id'] }}">{{ student['student_name'] }} ({{ student['admission_no'] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-arrow-right me-1"></i>Proceed</button>
+                </div>
+            </div>
+        </form>
+        <div class="text-center text-muted">
+            <p>Select a student from the list to continue.</p>
+        </div>
+    </div>
+    <!-- Hidden span to hold data passed from Jinja to JavaScript -->
+    <span id="page-config-data" style="display:none;"
+          data-show-filters="{{ show_filters|tojson if show_filters is defined else false|tojson }}"
+          data-base-url="{{ url_for(action_url_name, student_id=0) if action_url_name else '' }}">
+    </span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='js/fee.js') }}"></script>
+<script>
+    let showFiltersJs = false;
+    let baseUrl = '';
+    const pageConfigElement = document.getElementById('page-config-data');
+
+    if (pageConfigElement) {
+        const showFiltersAttr = pageConfigElement.getAttribute('data-show-filters');
+        if (showFiltersAttr !== null) { // Check for null in case attribute is missing
+            try {
+                showFiltersJs = JSON.parse(showFiltersAttr); // "true" becomes true, "false" becomes false
+            } catch (e) {
+                console.error("Error parsing data-show-filters:", e, "Defaulting to false.");
+                showFiltersJs = false;
+            }
+        }
+        baseUrl = pageConfigElement.getAttribute('data-base-url') || '';
+    }
+
+    $(document).ready(function() {
+        if (showFiltersJs) {
+            // Initialize Select2 for filter dropdowns if they are shown
+            $('#course_id_filter').select2({
+                theme: "bootstrap-5",
+                placeholder: "Select Course",
+                allowClear: true
+            });
+            $('#academic_year_id_filter').select2({
+                theme: "bootstrap-5",
+                placeholder: "Select Academic Year",
+                allowClear: true
+            });
+        }
+
+        // Note: Select2 for #student_id is initialized in fee.js
+    });
+    // Specific script for this page to handle form submission
+    document.getElementById('selectStudentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('student_id').value;
+        if (studentId) {
+            if (baseUrl) {
+                const finalUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1) + studentId;
+                window.location.href = finalUrl;
+            } else {
+                console.error('Base URL for student selection is not configured.');
+                alert('Configuration error. Cannot proceed.');
+            }
+        } else {
+            alert('Please select a student first.');
+        }
+    });
+</script>
+{% endblock %}

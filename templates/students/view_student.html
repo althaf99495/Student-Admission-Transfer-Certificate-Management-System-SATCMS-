@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}View Student: {{ student.student_name }} - Student TC App{% endblock %}
+
+{% block head_extra %}
+<style>
+    .detail-label { font-weight: 600; color: #555; }
+    .detail-value { color: #000; }
+    .nav-tabs .nav-link { color: var(--bs-primary); }
+    .nav-tabs .nav-link.active { color: #495057; background-color: #fff; border-color: #dee2e6 #dee2e6 #fff; }
+    .profile-header {
+        background: linear-gradient(to right, var(--bs-primary), var(--bs-info));
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .profile-header h2 { margin-bottom: 0.25rem; }
+    .profile-header p { opacity: 0.9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg mb-4">
+    <div class="profile-header text-center">
+        <i class="fas fa-user-graduate fa-3x mb-2"></i>
+        <h2>{{ student.student_name }} {{ student.surname or '' }}</h2>
+        <p class="lead mb-0">Admission No: <strong>{{ student.admission_no }}</strong></p>
+        <p>
+            {{ student.course_name }} ({{ student.course_code }}) - {{ student.academic_year }}
+            {% if student.date_of_leaving %}
+                <span class="badge bg-light text-dark ms-2">Status: Left on {{ student.date_of_leaving | datetime }}</span>
+            {% else %}
+                <span class="badge bg-light text-dark ms-2">Status: Active</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="card-body p-0">
+        <ul class="nav nav-tabs nav-fill" id="studentDetailsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab" aria-controls="personal" aria-selected="true"><i class="fas fa-id-card me-2"></i>Personal Details</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab" aria-controls="academic" aria-selected="false"><i class="fas fa-university me-2"></i>Academic Info</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="fees-tab" data-bs-toggle="tab" data-bs-target="#fees" type="button" role="tab" aria-controls="fees" aria-selected="false"><i class="fas fa-money-bill-wave me-2"></i>Fee Payments</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tc-tab" data-bs-toggle="tab" data-bs-target="#tc" type="button" role="tab" aria-controls="tc" aria-selected="false"><i class="fas fa-file-alt me-2"></i>Transfer Certificate</button>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4" id="studentDetailsTabContent">
+            <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+                <h5 class="mb-3 text-primary">Personal Information</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><span class="detail-label">Father's Name:</span> <span class="detail-value">{{ student.father_name or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Mother's Name:</span> <span class="detail-value">{{ student.mother_name or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Date of Birth:</span> <span class="detail-value">{{ student.dob | datetime if student.dob else 'N/A' }} (Age: {{ student.age or 'N/A' }})</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Gender:</span> <span class="detail-value">{{ student.gender or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Aadhar No:</span> <span class="detail-value">{{ student.aadhar_no or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Phone:</span> <span class="detail-value">{{ student.phone_no or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Email:</span> <span class="detail-value">{{ student.email or 'N/A' }}</span></div>
+                </div>
+                <hr>
+                <h5 class="my-3 text-primary">Address</h5>
+                <p class="detail-value">
+                    {{ student.address1 or '' }}<br>
+                    {{ student.address2 or '' }}{% if student.address2 and student.address3 %},{% endif %} {{ student.address3 or '' }}<br>
+                    {{ student.town or 'N/A' }}, {{ student.state or 'N/A' }}
+                </p>
+                <hr>
+                <h5 class="my-3 text-primary">Additional Details</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><span class="detail-label">Nationality:</span> <span class="detail-value">{{ student.nationality or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Religion:</span> <span class="detail-value">{{ student.religion or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Caste Category:</span> <span class="detail-value">{{ student.caste or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Sub-Caste:</span> <span class="detail-value">{{ student.sub_caste or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Mother Tongue:</span> <span class="detail-value">{{ student.mother_tongue or 'N/A' }}</span></div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="academic" role="tabpanel" aria-labelledby="academic-tab">
+                <h5 class="mb-3 text-primary">Academic Details</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-2"><span class="detail-label">Admission Type:</span> <span class="detail-value">{{ student.type or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Date of Admission:</span> <span class="detail-value">{{ student.date_of_admission | datetime if student.date_of_admission else 'N/A' }}</span></div>
+                     <div class="col-md-6 mb-2"><span class="detail-label">Starting Year:</span> <span class="detail-value">{{ student.starting_year or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Ending Year:</span> <span class="detail-value">{{ student.ending_year or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Previous College/School:</span> <span class="detail-value">{{ student.previous_college or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Old TC No. & Date:</span> <span class="detail-value">{{ student.old_tc_no_date or 'N/A' }}</span></div>
+                    <div class="col-md-6 mb-2"><span class="detail-label">Conduct:</span> <span class="detail-value">{{ student.conduct or 'Good' }}</span></div>
+                    {% if student.date_of_leaving %}
+                    <div class="col-md-6 mb-2"><span class="detail-label">Date of Leaving:</span> <span class="detail-value">{{ student.date_of_leaving | datetime }}</span></div>
+                    {% endif %}
+                </div>
+                <hr>
+                <h5 class="my-3 text-primary">Remarks</h5>
+                <p class="detail-value">{{ student.remarks or 'No remarks.' }}</p>
+            </div>
+
+            <div class="tab-pane fade" id="fees" role="tabpanel" aria-labelledby="fees-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-primary mb-0">Fee Payment History</h5>
+                    {% if not student.date_of_leaving %}
+                    <a href="{{ url_for('fees.record_payment', student_id=student.id) }}" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Add Payment</a>
+                    {% endif %}
+                </div>
+                {% if payments %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount Paid</th>
+                                <th>Method</th>
+                                <th>Transaction ID</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_fee_for_student = payments[0].total_fee if payments else 0 %}
+                            {% set total_paid_by_student = namespace(value=0) %}
+                            {% for payment in payments %}
+                            <tr>
+                                <td>{{ payment.payment_date | datetime }}</td>
+                                <td>{{ payment.amount_paid | currency }}</td>
+                                <td>{{ payment.payment_method }}</td>
+                                <td>{{ payment.transaction_id or '-' }}</td>
+                                <td>{{ payment.remarks or '-' }}</td>
+                                <td>
+                                    <a href="{{ url_for('fees.edit_fee_payment', payment_id=payment.id) }}" class="btn btn-xs btn-outline-primary" title="Edit Payment"><i class="fas fa-edit"></i></a>
+                                    {# Delete payment form #}
+                                    <form method="POST" action="{{ url_for('fees.delete_fee_payment', payment_id=payment.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this payment record?');">
+                                        <button type="submit" class="btn btn-xs btn-outline-danger" title="Delete Payment"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% set total_paid_by_student.value = total_paid_by_student.value + payment.amount_paid %}
+                            {% endfor %}
+                        </tbody>
+                         <tfoot>
+                            <tr class="table-light fw-bold">
+                                <td colspan="1" class="text-end">Total Fee:</td>
+                                <td>{{ total_fee_for_student | currency }}</td>
+                                <td colspan="4"></td>
+                            </tr>
+                            <tr class="table-light fw-bold">
+                                <td colspan="1" class="text-end">Total Paid:</td>
+                                <td>{{ total_paid_by_student.value | currency }}</td>
+                                <td colspan="4"></td>
+                            </tr>
+                             <tr class="table-light fw-bold {% if (total_fee_for_student - total_paid_by_student.value) > 0 %}text-danger{% else %}text-success{% endif %}">
+                                <td colspan="1" class="text-end">Balance Due:</td>
+                                <td>{{ (total_fee_for_student - total_paid_by_student.value) | currency }}</td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-search-dollar fa-2x text-muted mb-2"></i>
+                    <p>No fee payments recorded for this student.</p>
+                    {% if not student.fee_structure_id %}
+                    <p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No fee structure assigned. Please <a href="{{ url_for('fees.list_fee_structures') }}">setup fee structures</a>.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="tc" role="tabpanel" aria-labelledby="tc-tab">
+                 <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-primary mb-0">Transfer Certificate Details</h5>
+                    <a href="{{ url_for('tc.generate_tc', student_id=student.id) }}" class="btn btn-sm btn-info">
+                        <i class="fas fa-{% if tc_record %}edit{% else %}plus{% endif %} me-1"></i> 
+                        {% if tc_record %}Re-Generate / Edit TC Details{% else %}Generate TC{% endif %}
+                    </a>
+                </div>
+                {% if tc_record %}
+                    <div class="card bg-light border">
+                        <div class="card-body">
+                            <p><span class="detail-label">TC Number:</span> <strong class="detail-value">{{ tc_record.tc_number }}</strong></p>
+                            <p><span class="detail-label">Issue Date:</span> <span class="detail-value">{{ tc_record.issue_date | datetime }}</span></p>
+                            <p><span class="detail-label">Notes:</span> <span class="detail-value">{{ tc_record.notes or 'N/A' }}</span></p>
+                            <hr>
+                            <a href="{{ url_for('tc.preview_tc_for_student', student_id=student.id) }}" class="btn btn-primary"><i class="fas fa-eye me-2"></i>Preview & Download TC</a>
+                        </div>
+                    </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-file-excel fa-2x text-muted mb-2"></i>
+                    <p>No Transfer Certificate has been generated for this student yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-light text-end">
+        <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="btn btn-primary"><i class="fas fa-edit me-2"></i>Edit Student Details</a>
+        <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
+    </div>
+</div>
+{% endblock %}

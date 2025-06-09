@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Fee Payment | {{ super() }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-money-check-alt me-2"></i>Record Fee Payment</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info">
+                    Recording payment for: <strong>{{ student['student_name'] }}</strong> (Adm No: {{ student['admission_no'] }})
+                </div>
+
+                {% if fee_structure_missing %}
+                <div class="alert alert-danger" role="alert">
+                    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Fee Structure Missing!</h5>
+                    <p>This student does not have an assigned fee structure. Payments cannot be recorded until a fee structure is assigned to them.</p>
+                    <hr>
+                    <p class="mb-0">
+                        Please <a href="{{ url_for('students.edit_student', student_id=student['id']) }}" class="alert-link">update the student's details</a> to assign a fee structure via their profile page.
+                    </p>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('fees.record_payment', student_id=student['id']) }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <fieldset {% if fee_structure_missing %}disabled{% endif %}> {# Disable form fields if fee structure is missing #}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">Amount Paid <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" id="amount" name="amount" value="{{ form_data.amount if form_data else '' }}" required min="0.01" step="0.01">
+                                    <div class="invalid-feedback">Please enter a valid amount.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_date" class="form-label">Payment Date <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control datepicker" id="payment_date" name="payment_date" value="{{ form_data.payment_date if form_data else today_date }}" required>
+                                 <div class="invalid-feedback">Please select a payment date.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="transaction_id" class="form-label">Transaction ID / Receipt No.</label>
+                                <input type="text" class="form-control" id="transaction_id" name="transaction_id" value="{{ form_data.transaction_id if form_data else '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                <select class="form-select" id="payment_method" name="payment_method" required>
+                                    <option value="">Select Method...</option>
+                                    {% set available_methods = ['Cash', 'Online', 'Cheque', 'DD', 'Card', 'UPI', 'Bank Transfer', 'Other'] %}
+                                    {% for method in available_methods %}
+                                    <option value="{{ method }}" {% if form_data and form_data.get('payment_method') == method %}selected{% endif %}>{{ method }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a payment method.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="remarks" class="form-label">Remarks / Notes</label>
+                            <textarea class="form-control" id="remarks" name="remarks" rows="3">{{ form_data.remarks if form_data else '' }}</textarea>
+                        </div>
+                    </fieldset>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <a href="{{ url_for('fees.view_student_fees', student_id=student['id']) }}" class="btn btn-outline-secondary me-2"><i class="fas fa-times me-1"></i>Cancel</a>
+                        <button type="submit" class="btn btn-primary" {% if fee_structure_missing %}disabled{% endif %}><i class="fas fa-save me-1"></i>Record Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/fee.js') }}"></script>
+{% endblock %}

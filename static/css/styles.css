@@ -1,0 +1,140 @@
+/* static/css/styles.css */
+
+/* Import a Google Font (Optional, but Inter is used in base.html inline style) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7f6; /* A very light off-white/gray for the page background */
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Override Bootstrap primary color (optional) */
+/* :root {
+    --bs-primary: #0056b3; 
+    --bs-primary-rgb: 0, 86, 179;
+} */
+
+/* Navbar adjustments if needed beyond base.html */
+.navbar {
+    /* Example: Add a subtle shadow if not already present or strong enough */
+    /* box-shadow: 0 2px 4px rgba(0,0,0,0.05); */
+}
+
+.college-header h1 {
+    font-weight: 700; /* Bolder college name */
+}
+.college-header h2 {
+    font-weight: 400;
+}
+
+/* Card styling consistency */
+.card {
+    border: none; /* Remove default card borders for a cleaner look with shadows */
+    margin-bottom: 1.5rem; /* Consistent spacing below cards */
+}
+
+.card-header {
+    /* Ensure card headers have a slightly bolder font and good padding */
+    font-weight: 500;
+    /* padding: 0.75rem 1.25rem; */ /* Bootstrap default is usually fine */
+}
+.card-header.bg-primary { /* Ensure text is readable on colored backgrounds */
+    color: #fff;
+}
+.card-header.bg-light {
+    background-color: #f8f9fa !important; /* Ensure light background is consistent */
+    border-bottom: 1px solid #e9ecef;
+}
+
+
+/* Table styling */
+.table {
+    margin-bottom: 0; /* Remove default bottom margin if card-body has padding */
+}
+.table th {
+    font-weight: 600; /* Slightly bolder table headers */
+    white-space: nowrap;
+}
+.table td {
+    font-size: 0.9rem;
+}
+.table-hover tbody tr:hover {
+    background-color: #f1f1f1; /* Subtle hover for table rows */
+}
+
+/* Button styling */
+.btn {
+    /* font-weight: 500; */ /* Slightly bolder button text */
+    /* padding: 0.5rem 1rem; */ /* Adjust padding if needed */
+    /* transition: all 0.2s ease-in-out; */ /* Smooth transitions for hover effects */
+}
+.btn-primary {
+    /* background-color: var(--bs-primary); */
+    /* border-color: var(--bs-primary); */
+}
+.btn-primary:hover {
+    /* opacity: 0.9; */
+}
+
+
+/* Form elements */
+.form-label {
+    margin-bottom: 0.25rem; /* Smaller margin below labels */
+    font-weight: 500;
+}
+.form-control, .form-select {
+    /* transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; */
+}
+.form-control:focus, .form-select:focus {
+    /* border-color: var(--bs-primary); */
+    /* box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25); */
+}
+
+/* Alert styling */
+.alert {
+    /* border-left-width: 4px; */
+}
+
+/* Footer */
+.footer {
+    font-size: 0.9rem;
+}
+
+/* Utility classes */
+.text-xs {
+    font-size: .75rem !important;
+}
+.font-weight-bold { /* Bootstrap 5 uses fw-bold */
+    font-weight: 700 !important; 
+} 
+.text-gray-800 { color: #5a5c69 !important; }
+.text-gray-300 { color: #dddfeb !important; }
+
+/* Responsive adjustments if needed */
+@media (max-width: 768px) {
+    .college-header h1 {
+        font-size: 2rem;
+    }
+    .college-header h2 {
+        font-size: 1.25rem;
+    }
+    .d-sm-flex { /* Ensure flex behavior is maintained or adjusted for small screens */
+        /* display: block !important; /* Example: stack elements */
+    }
+}
+
+/* Specific styling for student_form_utils.js generated messages */
+#formMessages .alert {
+    margin-top: 1rem;
+}
+
+/* Ensure datepicker icon is visible if needed */
+input.datepicker {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' class='bi bi-calendar-event' viewBox='0 0 16 16'%3E%3Cpath d='M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z'/%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 16px;
+    padding-right: 2.5rem; /* Make space for the icon */
+}

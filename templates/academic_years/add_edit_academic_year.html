@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Academic Year | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-{{ 'plus' if action == 'Add' else 'edit' }} me-2"></i>{{ action }} Academic Year</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" class="needs-validation" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-4">
+                        <label for="academic_year" class="form-label">Academic Year <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="academic_year" name="academic_year" 
+                               value="{{ year.academic_year or '' }}" required pattern="\d{4}-\d{4}" 
+                               placeholder="e.g., 2024-2025">
+                        <div class="invalid-feedback">Please use YYYY-YYYY format (e.g., 2024-2025).</div>
+                        <small class="form-text text-muted">Must be in YYYY-YYYY format.</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url_for('academic_years.list_academic_years') }}" class="btn btn-outline-secondary me-2"><i class="fas fa-times me-1"></i>Cancel</a>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Year</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

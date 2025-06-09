@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}TC Preview - {{ student.student_name }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-lg">
+    <div class="card-header bg-success text-white">
+        <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>Transfer Certificate Generated</h4>
+    </div>
+    <div class="card-body p-4">
+        <div class="text-center">
+            <p class="lead">TC for <strong>{{ student.student_name }}</strong> (Adm No: {{ student.admission_no }}) has been generated successfully.</p> 
+        </div>
+        <hr>
+
+        <h5 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Transfer Certificate Details</h5>
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <dl class="row">
+                    {% for label, value in display_items %}
+                    <dt class="col-sm-5 text-sm-end fw-medium">{{ label }}:</dt>
+                    <dd class="col-sm-7">{{ value | nl2br }}</dd>
+                    {% endfor %}
+                </dl>
+            </div>
+        </div>
+
+        <hr>
+        
+        <div class="my-4 text-center">
+            <a href="{{ url_for('tc.download_tc', filename=pdf_filename) }}" class="btn btn-danger btn-lg mx-2"> 
+                <i class="fas fa-file-pdf me-2"></i>Download PDF
+            </a>
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('students.view_student', student_id=student.id) }}" class="btn btn-outline-secondary me-2"> 
+                <i class="fas fa-arrow-left me-1"></i>Back to Student Profile
+            </a>
+             <a href="{{ url_for('tc.select_student') }}" class="btn btn-outline-info"> 
+                <i class="fas fa-plus me-1"></i>Generate Another TC
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

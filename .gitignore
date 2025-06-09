@@ -1,0 +1,14 @@
+# Python
+venv/
+*.pyc
+__pycache__/
+.env
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# Other common files to ignore
+*.log
+*.tmp
+*.swp
