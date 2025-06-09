@@ -31,7 +31,7 @@ class Config:
     # Application settings
     APP_NAME = "Student Admission & Transfer Certificate Management System"
     APP_VERSION = "1.0.0"
-    COLLEGE_NAME = "SV UNIVERSITY :: SVU COLLEGE OF CM & CS" # Add a default college name
+    COLLEGE_NAME = "My college" # Add a default college name
 
     # Pagination settings
     STUDENTS_PER_PAGE = 25
