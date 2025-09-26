@@ -49,6 +49,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="tc-tab" data-bs-toggle="tab" data-bs-target="#tc" type="button" role="tab" aria-controls="tc" aria-selected="false"><i class="fas fa-file-alt me-2"></i>Transfer Certificate</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="history-tab-btn" data-bs-toggle="tab" data-bs-target="#student-history" type="button" role="tab" aria-controls="student-history" aria-selected="false"><i class="fas fa-history me-2"></i>Student History</button>
+            </li>
         </ul>
 
         <div class="tab-content p-4" id="studentDetailsTabContent">
@@ -102,14 +105,21 @@
 
             <div class="tab-pane fade" id="fees" role="tabpanel" aria-labelledby="fees-tab">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="text-primary mb-0">Fee Payment History</h5>
-                    {% if not student.date_of_leaving %}
-                    <a href="{{ url_for('fees.record_payment', student_id=student.id) }}" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Add Payment</a>
-                    {% endif %}
+                    <h5 class="text-primary mb-0 mt-2"><i class="fas fa-file-invoice-dollar me-2"></i>Fee Payment History</h5>
+                    <div>
+                        {% if payments %}
+                        <a href="{{ url_for('fees.download_fee_history', student_id=student.id) }}" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-file-pdf me-1"></i> Download History (PDF)
+                        </a>
+                        {% endif %}
+                        {# Removed condition to always show Add Payment Record button #}
+                        <a href="{{ url_for('fees.record_payment', student_id=student.id) }}" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Add Payment Record</a>
+                    </div>
                 </div>
+                <hr class="mt-0 mb-3"> {# Horizontal line after heading and buttons #}
                 {% if payments %}
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover table-striped">
+                    <table class="table table-sm table-hover table-striped table-bordered">
                         <thead class="table-light">
                             <tr>
                                 <th>Date</th>
@@ -174,10 +184,24 @@
             <div class="tab-pane fade" id="tc" role="tabpanel" aria-labelledby="tc-tab">
                  <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="text-primary mb-0">Transfer Certificate Details</h5>
-                    <a href="{{ url_for('tc.generate_tc', student_id=student.id) }}" class="btn btn-sm btn-info">
-                        <i class="fas fa-{% if tc_record %}edit{% else %}plus{% endif %} me-1"></i> 
-                        {% if tc_record %}Re-Generate / Edit TC Details{% else %}Generate TC{% endif %}
-                    </a>
+                    <div>
+                        {% if tc_record %}
+                            <form action="{{ url_for('tc.delete_tc', student_id=student.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this Transfer Certificate? This action cannot be undone and will clear the Date of Leaving and Conduct for the student.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger me-2"><i class="fas fa-trash-alt me-1"></i> Delete TC</button>
+                            </form>
+                            <a href="{{ url_for('tc.generate_tc', student_id=student.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-edit me-1"></i> Re-Generate / Edit TC Details
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('tc.generate_tc', student_id=student.id) }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-plus me-1"></i> Generate TC
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <span class="detail-label">TCs Issued:</span> <span class="detail-value">{{ tc_issued_count }}</span>
                 </div>
                 {% if tc_record %}
                     <div class="card bg-light border">
@@ -194,6 +218,33 @@
                     <i class="fas fa-file-excel fa-2x text-muted mb-2"></i>
                     <p>No Transfer Certificate has been generated for this student yet.</p>
                 </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="student-history" role="tabpanel" aria-labelledby="history-tab-btn">
+                <h5 class="text-primary mb-0 mt-2"><i class="fas fa-stream me-2"></i>Chronological Event History</h5>
+                <hr class="mt-2 mb-3">
+                {% if event_history %}
+                    <ul class="list-group list-group-flush">
+                        {% for event in event_history %}
+                            <li class="list-group-item px-0 py-3">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ event.type }}</h6>
+                                    <small class="text-muted">{{ event.date | datetime('%d %b %Y') }}</small>
+                                </div>
+                                <p class="mb-1">{{ event.description }}</p>
+                                {% if event.details %}
+                                    <small class="text-muted">
+                                    {% for key, value in event.details.items() %}
+                                        <strong>{{ key }}:</strong> {{ value }}{% if not loop.last %}; {% endif %}
+                                    {% endfor %}
+                                    </small>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="text-center py-4"><i class="fas fa-folder-open fa-2x text-muted mb-2"></i><p>No historical events recorded for this student yet.</p></div>
                 {% endif %}
             </div>
         </div>

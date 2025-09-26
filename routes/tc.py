@@ -3,11 +3,12 @@
 import os
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash,
-    current_app, send_from_directory
+    current_app, send_from_directory, g # Import g
 )
 from models.db_pool import db_manager, get_student_by_id, get_courses, get_academic_years
 from utils.auth_helpers import admin_required
 from utils.pdf_utils import TCGenerator, generate_tc_number_for_student
+from utils.date_utils import convert_date_to_words # NEW IMPORT
 from datetime import datetime
 import logging
 import sqlite3
@@ -74,9 +75,6 @@ def redirect_to_generate_tc():
         return redirect(url_for('tc.select_student'))
     return redirect(url_for('tc.generate_tc', student_id=student_id))
 
-# routes/tc.py
-
-# routes/tc.py
 
 @tc_bp.route('/generate/<int:student_id>', methods=['GET', 'POST'])
 @admin_required
@@ -86,6 +84,7 @@ def generate_tc(student_id):
     if not student:
         flash('Student not found.', 'danger')
         return redirect(url_for('tc.select_student'))
+    student = dict(student) # Convert sqlite3.Row to a dictionary for easier attribute access
 
     # Check if TC already exists
     if db_manager.execute_query("SELECT 1 FROM transfer_certificates WHERE student_id = ?", (student_id,), fetch_one=True):
@@ -93,56 +92,131 @@ def generate_tc(student_id):
         return redirect(url_for('tc.preview_tc_for_student', student_id=student_id))
 
     if request.method == 'POST':
-        tc_data = {
+        # Consistently use tc_form_input for data from the POST request
+        tc_form_input = {
             'tc_number': request.form.get('tc_number'),
             'issue_date': request.form.get('issue_date'),
             'date_of_leaving': request.form.get('date_of_leaving'),
-            'conduct': request.form.get('conduct', 'Good'),
-            'last_exam_passed': request.form.get('last_exam_passed'),
+            'conduct': request.form.get('conduct') or 'Good', # Use conduct from TC form, default to 'Good' if empty
             'promotion_status': request.form.get('promotion_status'),
-            'notes': request.form.get('notes')
+            'notes': request.form.get('notes'),
+            'dob_in_words': '' # Placeholder, will be set below
         }
+
+        # --- Date Conversion and Validation ---
+        form_dol_str = tc_form_input.get('date_of_leaving')
+        form_doi_str = tc_form_input.get('issue_date') # Date of Issue
+        student_doa_str = student['date_of_admission'] # From DB (should be YYYY-MM-DD)
+
+        if not form_dol_str:
+            flash('Date of Leaving is required for the TC.', 'danger')
+            return render_template('tc/tc_generate.html', student=student, tc_data=tc_form_input)
+        if not form_doi_str:
+            flash('Date of Issue is required for the TC.', 'danger')
+            return render_template('tc/tc_generate.html', student=student, tc_data=tc_form_input)
+
+        try:
+            # Convert dates from display format (e.g., dd-mm-yyyy) to DB format (YYYY-MM-DD)
+            input_format = current_app.config.get('DATE_FORMAT', '%d-%m-%Y')
+            date_of_leaving_obj = datetime.strptime(form_dol_str, input_format).date()
+            date_of_issue_obj = datetime.strptime(form_doi_str, input_format).date()
+
+            # Store back in YYYY-MM-DD format for DB operations
+            tc_form_input['date_of_leaving'] = date_of_leaving_obj.strftime('%Y-%m-%d')
+            tc_form_input['issue_date'] = date_of_issue_obj.strftime('%Y-%m-%d')
+
+            if student_doa_str: # student_doa_str is NOT NULL in schema
+                date_of_admission_obj = datetime.strptime(student_doa_str, '%Y-%m-%d').date()
+                if date_of_leaving_obj < date_of_admission_obj:
+                    flash('Date of Leaving cannot be before Date of Admission.', 'danger')
+                    # Re-render with original DD-MM-YYYY format by reverting the change
+                    tc_form_input['date_of_leaving'] = form_dol_str
+                    tc_form_input['issue_date'] = form_doi_str
+                    return render_template('tc/tc_generate.html', student=student, tc_data=tc_form_input)
+        except ValueError:
+            flash(f"Invalid date format. Please use {input_format.replace('%', '').upper()}.", 'danger')
+            return render_template('tc/tc_generate.html', student=student, tc_data=tc_form_input)
+
+        # Convert DOB to words for TC document
+        student_dob_from_db = student.get('dob')
+        logger.debug(f"TC Generation: Raw DOB from DB for student {student_id}: '{student_dob_from_db}' (type: {type(student_dob_from_db)})")
+
+        # Check if DOB is present and not just whitespace
+        if student_dob_from_db and student_dob_from_db.strip():
+            tc_form_input['dob_in_words'] = convert_date_to_words(student_dob_from_db, input_format='%Y-%m-%d')
+            if tc_form_input['dob_in_words'] == "INVALID DATE":
+                logger.warning(f"DOB_WORDS conversion failed for student {student_id}. Raw DOB from DB: '{student_dob_from_db}'. Setting to 'INVALID DATE'.")
+        else:
+            tc_form_input['dob_in_words'] = 'N/A'
+            logger.warning(f"Student {student_id} has no valid DOB in DB (or it's empty/whitespace). Setting DOB_WORDS to 'N/A'. Raw DOB from DB: '{student_dob_from_db}'.")
 
         try:
             # Step 1: Generate the physical TC files
             generator = TCGenerator()
-            docx_path, _ = generator.generate_tc_files(dict(student), tc_data)
+            docx_path, _ = generator.generate_tc_files(dict(student), tc_form_input)
             
             # Step 2: Save records to database within a single transaction
             with db_manager.get_db_cursor(commit=True) as cursor:
                 # Insert the new TC record
                 cursor.execute(
                     """INSERT INTO transfer_certificates
-                       (student_id, tc_number, issue_date, notes)
-                       VALUES (?, ?, ?, ?)""",
-                    (student_id, tc_data['tc_number'], tc_data['issue_date'], tc_data['notes'])
+                       (student_id, tc_number, issue_date, notes, promotion_status)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (student_id, tc_form_input['tc_number'], tc_form_input['issue_date'],
+                     tc_form_input['notes'], tc_form_input.get('promotion_status'))
                 )
                 # Update the student's record with leaving date and conduct
                 cursor.execute(
                     "UPDATE students SET date_of_leaving = ?, conduct = ? WHERE id = ?",
-                    (tc_data['date_of_leaving'], tc_data['conduct'], student_id)
+                    (tc_form_input['date_of_leaving'], tc_form_input['conduct'], student_id)
                 )
 
-            # Optional: Clean up the temporary .docx file after successful generation and DB commit
-            if os.path.exists(docx_path):
-                os.remove(docx_path)
+            
 
-            flash(f"TC (No: {tc_data['tc_number']}) generated successfully for {student['student_name']}.", 'success')
+            flash(f"TC (No: {tc_form_input['tc_number']}) generated successfully for {student['student_name']}.", 'success')
             return redirect(url_for('tc.preview_tc_for_student', student_id=student_id))
 
         except (RuntimeError, sqlite3.Error, FileNotFoundError) as e:
             logger.error(f"TC Generation failed for student {student_id}: {e}", exc_info=True)
             flash(f"Failed to generate TC. Error: {e}", 'danger')
-            return render_template('tc/tc_generate.html', student=student, tc_data=request.form)
+            return render_template('tc/tc_generate.html', student=student, tc_data=tc_form_input)
 
     # For GET request, prepare default data
-    today = datetime.now().strftime(current_app.config['DATE_FORMAT'])
+    display_format = current_app.config.get('DISPLAY_DATE_FORMAT', '%d-%m-%Y')
+    today_formatted = datetime.now().strftime(display_format) # Date of Issue
+
+    # Convert date_of_leaving from DB (YYYY-MM-DD) to display format
+    date_of_leaving_display = student['date_of_leaving']
+    if date_of_leaving_display:
+        try:
+            date_of_leaving_display = datetime.strptime(date_of_leaving_display, '%Y-%m-%d').strftime(display_format)
+        except (ValueError, TypeError):
+            pass # Keep original on error, or default below
+    else:
+        # Default to March 1st of the current year if date_of_leaving is not set
+        current_year = datetime.now().year
+        # Ensure March 1st is a valid date (it always is)
+        may_first_current_year = datetime(current_year, 5, 1) # Changed month from 3 (March) to 5 (May)
+        date_of_leaving_display = may_first_current_year.strftime(display_format)
+
     tc_data = {
-        'issue_date': today,
-        'date_of_leaving': student['date_of_leaving'] or today,
+        'issue_date': today_formatted,
+        'date_of_leaving': date_of_leaving_display,
         'tc_number': generate_tc_number_for_student(student_id),
-        'conduct': student['conduct'] or 'Good'
+        'conduct': student.get('conduct', 'Good'),
+        'dob_in_words': '' # Placeholder, will be set below
     }
+    # Convert DOB to words for TC document (for GET request display)
+    student_dob_from_db = student.get('dob')
+    logger.debug(f"TC Generation (GET): Raw DOB from DB for student {student_id}: '{student_dob_from_db}' (type: {type(student_dob_from_db)})")
+
+    if student_dob_from_db and student_dob_from_db.strip():
+        tc_data['dob_in_words'] = convert_date_to_words(student_dob_from_db, input_format='%Y-%m-%d')
+        if tc_data['dob_in_words'] == "INVALID DATE":
+            logger.warning(f"DOB_WORDS conversion failed for student {student_id} (GET request). Raw DOB from DB: '{student_dob_from_db}'. Setting to 'INVALID DATE'.")
+    else:
+        tc_data['dob_in_words'] = 'N/A'
+        logger.warning(f"Student {student_id} has no valid DOB in DB (or it's empty/whitespace) for GET request. Setting DOB_WORDS to 'N/A'. Raw DOB from DB: '{student_dob_from_db}'.")
     return render_template('tc/tc_generate.html', student=student, tc_data=tc_data)
 
 @tc_bp.route('/preview/<int:student_id>')
@@ -156,57 +230,37 @@ def preview_tc_for_student(student_id):
         flash("TC record not found for this student.", "warning")
         return redirect(url_for('tc.select_student'))
     
-    # Generate filenames based on the stored TC number
+    # Generate expected PDF filename based on the stored TC number and student data
     safe_adm_no = str(student['admission_no']).replace('/', '_')
     safe_tc_no = str(tc_record['tc_number']).replace('/', '_')
     pdf_filename = f"TC_{safe_adm_no}_{safe_tc_no}.pdf"
 
-    # Prepare data for display, similar to how TCGenerator does for DOCX
-    generator = TCGenerator()
-    
-    # Data expected by _prepare_replacement_data from its 'tc_data' argument
-    # We source these from the student record (updated during TC gen) and tc_record
-    tc_specific_data_for_preview = {
-        'date_of_leaving': student['date_of_leaving'],
-        'conduct': student['conduct'],
-        'promotion_status': tc_record['promotion_status'] if 'promotion_status' in tc_record.keys() else 'N/A', # Access as dict
-        # 'tc_number': tc_record['tc_number'], # Not directly used as a placeholder by _prepare_replacement_data
-        # 'issue_date': tc_record['issue_date'], # Not directly used as a placeholder by _prepare_replacement_data
-        # 'notes': tc_record['notes'] # Not directly used as a placeholder by _prepare_replacement_data
-    }
+    # Prepare data for display directly from student and tc_record
+    # This avoids relying on internal methods of TCGenerator
+    # If you need formatted dates, use the template filters directly in the template
 
-    all_placeholders = generator._prepare_replacement_data(dict(student), tc_specific_data_for_preview)
+    # Simplified data structure for display
+    display_items = [
+        ("TC Number", tc_record['tc_number']),
+        ("Date of Issue", tc_record['issue_date']), # Use filter in template
+        ("Date of Leaving", student['date_of_leaving']), # Use filter in template
+        ("Student Name", student['student_name']),
+        ("Admission No", student['admission_no']),
+        ("Course", f"{student['course_name']} ({student['course_code']})"),
+        ("Academic Year", student['academic_year']),
+        ("Father's Name", student['father_name']),
+        ("Date of Birth", student['dob']), # Use filter in template
+        ("Nationality", student['nationality'] or 'N/A'),
+        ("Religion", student['religion'] or 'N/A'),
+        ("Caste", student['caste'] or 'N/A'),
+        ("Conduct", student['conduct'] or 'N/A'),
+        ("Promotion Status", tc_record['promotion_status'] if tc_record and 'promotion_status' in tc_record.keys() and tc_record['promotion_status'] else 'N/A'),
+        ("Notes/Remarks", tc_record['notes'] or 'N/A'),
+        # Add other relevant fields from student or tc_record as needed
+    ]
 
-    placeholder_labels = {
-        '[TC_SNO]': "TC S.No. (from Admission No.)",
-        '[ADM_NO]': "Admission No.",
-        '[STUDENT_NAME]': "Student Name",
-        '[FATHER_NAME]': "Father's Name",
-        '[NATIONALITY]': "Nationality",
-        '[RELIGION]': "Religion",
-        '[CASTE]': "Caste",
-        '[DOB]': "Date of Birth (DD/MM/YYYY)",
-        '[DOB_WORDS]': "Date of Birth (In Words)",
-        '[COURSE_NAME_FULL]': "Course (Full Name)",
-        '[COURSE_NAME]': "Course (Short Name)",
-        '[COURSE_CODE]': "Course Code",
-        '[DATE_OF_ADMISSION]': "Date of Admission",
-        '[PROMOTION_STATUS]': "Whether Qualified for Promotion", # This will now come from all_placeholders
-        '[DATE_OF_LEAVING]': "Date of Leaving",
-        '[ACADEMIC_PERIOD]': "Academic Period Studied",
-        '[CONDUCT]': "Conduct", # This will now come from all_placeholders
-        '[SALUTATION]': "Salutation",
-        '[POSSESSIVE_PRONOUN]': "Possessive Pronoun (His/Her)"
-    }
-
-    display_items = []
-    for key, label in placeholder_labels.items():
-        display_items.append((label, all_placeholders.get(key, 'N/A')))
-    
-    # Add items directly from tc_record that are not part of the standard placeholders
-    display_items.append(("TC Number (Generated)", tc_record['tc_number']))
-    display_items.append(("Date of Issue (TC)", generator._format_display_date(tc_record['issue_date'])))
-    display_items.append(("Remarks/Notes (on TC)", tc_record['notes'] or 'N/A'))
+    # You might still want to pass the raw student and tc_record objects
+    # to the template for easier access to all fields.
 
     return render_template('tc/tc_preview.html', student=student, tc_record=tc_record, pdf_filename=pdf_filename, display_items=display_items)
 
@@ -216,3 +270,27 @@ def download_tc(filename):
     """Handles the download of generated TC files."""
     directory = current_app.config['TC_OUTPUT_PATH']
     return send_from_directory(directory, filename, as_attachment=True)
+
+@tc_bp.route('/delete/<int:student_id>', methods=['POST'])
+@admin_required
+def delete_tc(student_id):
+    """
+    Deletes a Transfer Certificate record for a student and resets
+    the student's date_of_leaving and conduct fields.
+    """
+    student = get_student_by_id(student_id)
+    if not student:
+        flash('Student not found.', 'danger')
+        return redirect(url_for('students.list_students'))
+
+    try:
+        with db_manager.get_db_cursor(commit=True) as cursor:
+            # 1. Delete the TC record
+            cursor.execute("DELETE FROM transfer_certificates WHERE student_id = ?", (student_id,))
+            # 2. Reset date_of_leaving and conduct in the students table
+            cursor.execute("UPDATE students SET date_of_leaving = NULL, conduct = 'Good' WHERE id = ?", (student_id,))
+        flash(f'Transfer Certificate for {student["student_name"]} deleted successfully. Student\'s Date of Leaving and Conduct have been reset.', 'success')
+    except Exception as e:
+        logger.error(f"Error deleting TC for student {student_id}: {e}", exc_info=True)
+        flash(f'Error deleting Transfer Certificate: {e}', 'danger')
+    return redirect(url_for('students.view_student', student_id=student_id))

@@ -12,7 +12,7 @@
         <form method="POST" action="{{ url_for('reports.admission_register') }}" class="p-3 bg-light border rounded">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="course_id" class="form-label">Filter by Course</label>
                     <select name="course_id" id="course_id" class="form-select">
                         <option value="">All Courses</option>
@@ -21,7 +21,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="academic_year_id" class="form-label">Filter by Academic Year</label>
                     <select name="academic_year_id" id="academic_year_id" class="form-select">
                         <option value="">All Academic Years</option>
@@ -31,7 +31,10 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-download me-1"></i>Generate</button>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-download me-1"></i>Generate PDF</button>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" name="format" value="csv" class="btn btn-success w-100"><i class="fas fa-file-csv me-1"></i>Download CSV</button>
                 </div>
             </div>
         </form>

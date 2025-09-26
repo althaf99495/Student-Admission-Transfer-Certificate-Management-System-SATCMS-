@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Import Students{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Bulk Import Students</h1>
+
+    <div class="card">
+        <div class="card-header">
+            Instructions
+        </div>
+        <div class="card-body">
+            <p>Upload a CSV file with student data. The CSV file should have the following columns:</p>
+            <code>student_name, surname, father_name, mother_name, dob, gender, mobile_no, email, address, course_name, academic_year, date_of_admission, type, nationality, religion, caste, category</code>
+            <p class="mt-3">
+                <a href="{{ url_for('students.download_sample_csv') }}" class="btn btn-sm btn-info">Download Sample CSV</a>
+            </p>
+        </div>
+    </div>
+
+    <form action="{{ url_for('students.bulk_import') }}" method="post" enctype="multipart/form-data" class="mt-4">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label for="csv_file">Upload CSV File</label>
+            <input type="file" class="form-control-file" id="csv_file" name="csv_file" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Import Students</button>
+    </form>
+</div>
+{% endblock %}

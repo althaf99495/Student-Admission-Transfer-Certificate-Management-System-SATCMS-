@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Flatpickr for all elements with the 'datepicker' class
     flatpickr(".datepicker", {
         altInput: true,
-        altFormat: "d-m-Y", // Display format
-        dateFormat: "Y-m-d", // Format for the hidden input value
+        altFormat: "d-m-Y", // Display format (e.g., 16-11-2002)
+        dateFormat: "d-m-Y", // Format for the hidden input value (e.g., 16-11-2002)
     });
 
     /**
@@ -84,15 +84,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayErrors(result.errors || { 'general': 'An unknown error occurred. Please try again.' });
             } else {
                 // Handle successful submission
-                const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                const successModalEl = document.getElementById('successModal');
+                const successModal = new bootstrap.Modal(successModalEl);
                 document.getElementById('successMessageText').textContent = result.message;
                 document.getElementById('admissionNoDisplay').textContent = result.admission_no;
                 document.getElementById('viewStudentBtn').href = result.student_url;
                 successModal.show();
-                
-                // Reset the form for the next entry
-                form.reset();
-                form.classList.remove('was-validated');
+                            
+                // Reset the form and update admission number after the modal is hidden
+                successModalEl.addEventListener('hidden.bs.modal', function handler() {
+                    form.reset();
+                    form.classList.remove('was-validated');
+                    // Add a small delay to allow the browser to fully render the form reset
+                    setTimeout(() => {
+                        // Display the generated admission number on the main form page
+                        // after reset, so other fields are clear for new entry.
+                        const admissionNoInput = document.getElementById('admission_no');
+                        const admissionNoHelpText = document.getElementById('admissionNoHelpText');
+                        if (admissionNoInput) {
+                            admissionNoInput.value = result.admission_no;
+                        }
+                        if (admissionNoHelpText) {
+                            admissionNoHelpText.textContent = `Last registered: ${result.admission_no}. Ready for new entry.`;
+                            admissionNoHelpText.classList.remove('text-muted');
+                            admissionNoHelpText.classList.add('text-success'); 
+                        }
+                    }, 50); // 50ms delay, adjust if needed
+                    // Remove this event listener after it runs once
+                    successModalEl.removeEventListener('hidden.bs.modal', handler);
+                });
             }
 
         } catch (error) {

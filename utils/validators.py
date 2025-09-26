@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, date
 from typing import Optional, Union, Dict, Any
+from flask import current_app # Needed for ALLOWED_PAYMENT_METHODS
 
 class ValidationError(Exception):
     """Custom validation error"""
@@ -45,10 +46,17 @@ def validate_date_format(date_str: Optional[str], field_name: str = "Date") -> O
     if not date_str:
         return None # Optional date fields
     
+    # Try YYYY-MM-DD first (expected format after backend conversion in routes/students.py)
     try:
         return datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        raise ValidationError(f"{field_name} must be in YYYY-MM-DD format. Received: '{date_str}'")
+        # If that fails, try DD-MM-YYYY (format typically received from frontend forms)
+        # This acts as a fallback in case the initial conversion in the route failed or was skipped.
+        try:
+            return datetime.strptime(date_str, '%d-%m-%Y').date()
+        except ValueError:
+            # If neither format works, then it's truly an invalid date string
+            raise ValidationError(f"{field_name} must be in DD-MM-YYYY format. Received: '{date_str}'")
 
 def validate_age(age_val: Union[int, str], min_age: int = 0, max_age: int = 150) -> int:
     """
@@ -111,15 +119,15 @@ def validate_academic_year_format(academic_year: str) -> bool:
 
 def validate_course_code_format(course_code: str) -> bool:
     """
-    Validate course code format (alphanumeric, optionally with hyphens/underscores, max 10 chars).
+    Validate course code format (alphanumeric, optionally with hyphens/underscores, 2 or 3 chars).
     
     Args:
         course_code: Course code to validate.
     
     Returns:
-        bool: True if valid, False otherwise.
+        bool: True if valid, False otherwise (checks format and length).
     """
-    if not course_code or len(course_code) > 10:
+    if not course_code or not (2 <= len(course_code) <= 3):
         return False
     # Allows alphanumeric, hyphen, underscore. Does not check for existence in DB here.
     return re.match(r'^[a-zA-Z0-9_-]+$', course_code) is not None
@@ -143,13 +151,14 @@ def validate_required_field(value: Optional[str], field_name: str) -> str:
     return str(value).strip()
 
 
-def validate_student_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_student_data(data: Dict[str, Any], is_edit: bool = False) -> Dict[str, Any]:
     """
     Validate complete student data from a dictionary.
     
     Args:
         data: Student data dictionary.
-    
+        is_edit: Boolean, True if validating for an edit operation, False for add.
+
     Returns:
         dict: Validated and cleaned data.
     
@@ -278,6 +287,12 @@ def validate_student_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
     validated_data['conduct'] = str(data.get('conduct') or 'Good').strip()
 
+    # Fields related to admission number generation, not typically sent on edit unless specifically handled
+    if not is_edit:
+        # is_manual_admission_no and manual_serial_no are handled directly in the route
+        # for 'add' operation, as they determine how admission_no and serial_no are set.
+        pass
+
 
     if errors:
         raise ValidationError("Student data validation failed.", errors=errors)
@@ -308,13 +323,25 @@ def validate_course_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         course_code_val = validate_required_field(data.get('course_code'), 'Course Code').upper()
-        if not validate_course_code_format(course_code_val): # Just format, not existence
-            errors['course_code'] = "Course code must be alphanumeric (hyphens/underscores allowed) and max 10 characters."
+        # Length check will be tied to is_special_format
+        if not re.match(r'^[a-zA-Z0-9_-]+$', course_code_val): # Basic character check
+            errors['course_code'] = "Course code must be alphanumeric (hyphens/underscores allowed)."
         else:
             validated_data['course_code'] = course_code_val
     except ValidationError as e:
         errors['course_code'] = str(e)
     
+    # is_special_format (expecting 'on' or None from checkbox)
+    is_special_format_val = data.get('is_special_format') == 'on'
+    validated_data['is_special_format'] = 1 if is_special_format_val else 0
+
+    # Validate course_code length based on is_special_format
+    if 'course_code' in validated_data: # Only if course_code itself is valid so far
+        if validated_data['is_special_format'] == 1 and len(validated_data['course_code']) != 3:
+            errors['course_code'] = "Course code must be 3 characters long for special format."
+        elif validated_data['is_special_format'] == 0 and len(validated_data['course_code']) != 2:
+            errors['course_code'] = "Course code must be 2 characters long for standard format."
+
     course_type = str(data.get('type', '') or '').strip()
     if not course_type:
         errors['type'] = "Course type is required."
@@ -341,6 +368,118 @@ def validate_course_data(data: Dict[str, Any]) -> Dict[str, Any]:
     if errors:
         raise ValidationError("Course data validation failed.", errors=errors)
         
+    return validated_data
+
+def validate_payment_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validates fee payment data.
+    
+    Args:
+        data: Payment data dictionary.
+    
+    Returns:
+        dict: Validated and cleaned data.
+    
+    Raises:
+        ValidationError: If validation fails, with an 'errors' attribute.
+    """
+    errors: Dict[str, str] = {}
+    validated_data: Dict[str, Any] = {}
+
+    # Amount
+    try:
+        amount_val = validate_required_field(data.get('amount'), 'Amount')
+        amount_float = float(amount_val)
+        if amount_float <= 0:
+            errors['amount'] = "Amount must be a positive number."
+        else:
+            validated_data['amount_paid'] = amount_float
+    except (ValueError, TypeError):
+        errors['amount'] = "Amount must be a valid number."
+    except ValidationError as e:
+        errors['amount'] = str(e)
+
+    # Payment Date
+    payment_date_str = data.get('payment_date')
+    if not payment_date_str:
+        errors['payment_date'] = "Payment Date is required."
+    else:
+        try:
+            # validate_date_format handles both DD-MM-YYYY and YYYY-MM-DD
+            # and returns a date object. Convert to YYYY-MM-DD string for DB.
+            parsed_date = validate_date_format(payment_date_str, 'Payment Date')
+            if parsed_date:
+                validated_data['payment_date'] = parsed_date.strftime('%Y-%m-%d')
+            else: # Should be caught by validate_date_format, but as a fallback
+                errors['payment_date'] = "Invalid Payment Date format."
+        except ValidationError as e:
+            errors['payment_date'] = str(e)
+
+    # Payment Method
+    try:
+        payment_method = validate_required_field(data.get('payment_method'), 'Payment Method')
+        if payment_method not in current_app.config.get('ALLOWED_PAYMENT_METHODS', []):
+            errors['payment_method'] = "Invalid payment method selected."
+        else:
+            validated_data['payment_method'] = payment_method
+    except ValidationError as e:
+        errors['payment_method'] = str(e)
+
+    # Optional fields
+    validated_data['transaction_id'] = clean_string(data.get('transaction_id'))
+    validated_data['remarks'] = clean_string(data.get('remarks'))
+
+    if errors:
+        raise ValidationError("Payment data validation failed.", errors=errors)
+    
+    return validated_data
+
+def validate_fee_structure_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validates fee structure data.
+    
+    Args:
+        data: Fee structure data dictionary.
+    
+    Returns:
+        dict: Validated and cleaned data.
+    
+    Raises:
+        ValidationError: If validation fails, with an 'errors' attribute.
+    """
+    errors: Dict[str, str] = {}
+    validated_data: Dict[str, Any] = {}
+
+    # Required fields
+    for field_name, display_name in [('course_id', 'Course'), ('academic_year_id', 'Academic Year')]:
+        try:
+            val = validate_required_field(data.get(field_name), display_name)
+            int_val = int(val)
+            if int_val <= 0:
+                errors[field_name] = f"Invalid {display_name} selection."
+            else:
+                validated_data[field_name] = int_val
+        except (ValueError, TypeError):
+            errors[field_name] = f"{display_name} must be a valid number."
+        except ValidationError as e:
+            errors[field_name] = str(e)
+
+    # Total Fee
+    try:
+        total_fee_val = validate_required_field(data.get('total_fee'), 'Total Fee')
+        total_fee_float = float(total_fee_val)
+        if total_fee_float < 0:
+            errors['total_fee'] = "Total Fee must be a non-negative number."
+        else:
+            validated_data['total_fee'] = total_fee_float
+    except (ValueError, TypeError):
+        errors['total_fee'] = "Total Fee must be a valid number."
+    except ValidationError as e:
+        errors['total_fee'] = str(e)
+
+    if errors:
+        raise ValidationError("Fee structure data validation failed.", errors=errors)
+    
     return validated_data
 
 def clean_string(value: Optional[str], max_length: Optional[int] = None) -> Optional[str]:

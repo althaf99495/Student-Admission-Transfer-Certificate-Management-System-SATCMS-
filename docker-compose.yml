@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+      - ./college.db:/app/college.db
+    environment:
+      - FLASK_CONFIG=production
+      - SECRET_KEY=a-very-secret-key
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:alpine"

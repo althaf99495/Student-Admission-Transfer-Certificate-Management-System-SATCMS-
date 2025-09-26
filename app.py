@@ -4,7 +4,7 @@ Student Admission & Transfer Certificate Management System (SATCMS)
 Main Flask Application Entry Point
 """
 
-from flask import Flask, render_template, session, redirect, url_for, flash, request
+from flask import Flask, render_template, session, redirect, url_for, flash, request, send_from_directory
 from flask_wtf.csrf import CSRFProtect
 import sqlite3
 import os
@@ -21,9 +21,9 @@ from routes.fees import fees_bp
 from routes.tc import tc_bp
 from routes.reports import reports_bp
 from utils.template_filters import format_datetime_filter, format_currency_filter, nl2br_filter # Import filters
-# from utils.caching import init_app_cache # If you implement a more robust cache init
+from utils.caching import init_app_cache # If you implement a more robust cache init
 
-def create_app(config_name=None):
+def create_app(config_name=None, init_db=True):
     """Application factory pattern."""
     if config_name is None:
         config_name = os.getenv('FLASK_CONFIG', 'default')
@@ -42,28 +42,27 @@ def create_app(config_name=None):
     app.teardown_appcontext(db_manager.close_db) # Close DB connection at end of request/app_context
 
     # Initialize database schema if it's the first run or DB doesn't exist
-    # This is often better handled by a CLI command like "flask init-db"
-    # For simplicity, keeping a check here.
-    # Note: @app.before_first_request is deprecated.
-    # This block can be run once during app setup or via a CLI command.
-    with app.app_context():
-        if not os.path.exists(app.config['DATABASE_PATH']):
-            app.logger.info(f"Database not found at {app.config['DATABASE_PATH']}. Initializing...")
-            try:
-                # Ensure the directory for the database exists (also done in Config.init_app)
-                os.makedirs(os.path.dirname(app.config['DATABASE_PATH']), exist_ok=True)
-                # The init_db method now uses the db_manager instance
-                db_manager.init_db(app)
-                _setup_default_admin_if_needed(app) # Setup default admin after schema creation
-            except Exception as e:
-                app.logger.error(f"Failed to initialize database or setup admin: {e}", exc_info=True)
-        else:
-            app.logger.info(f"Database found at {app.config['DATABASE_PATH']}.")
-            _setup_default_admin_if_needed(app) # Check admin even if DB exists
+    # This check is performed within the app context during creation.
+    # A dedicated CLI command (e.g., `flask init-db`) is a more robust approach
+    # for production/deployment, but this simple check works for basic setups.
+    if init_db: # Allow skipping init_db for testing or specific scenarios
+        with app.app_context():
+            if not os.path.exists(app.config['DATABASE_PATH']):
+                app.logger.info(f"Database not found at {app.config['DATABASE_PATH']}. Initializing...")
+                try:
+                    # Ensure the directory for the database exists (also done in Config.init_app)
+                    # os.makedirs(os.path.dirname(app.config['DATABASE_PATH']), exist_ok=True) # Redundant, handled by Config.init_app
+                    db_manager.init_db(app) # This also ensures the db dir exists via Config.init_app
+                    _setup_default_admin_if_needed(app) # Setup default admin after schema creation
+                except Exception as e:
+                    app.logger.error(f"Failed to initialize database or setup admin: {e}", exc_info=True)
+            else:
+                app.logger.info(f"Database found at {app.config['DATABASE_PATH']}.")
+                _setup_default_admin_if_needed(app) # Check admin even if DB exists
 
     # Initialize caching if you have a sophisticated cache manager
-    # if 'init_app_cache' in globals():
-    #     init_app_cache(app)
+    if 'init_app_cache' in globals():
+        init_app_cache(app)
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth') # Example for auth
@@ -79,6 +78,13 @@ def create_app(config_name=None):
     app.jinja_env.filters['currency'] = format_currency_filter
     app.jinja_env.filters['nl2br'] = nl2br_filter
     
+    # --- Favicon Route ---
+    # Serve the favicon to prevent 404 errors in browser logs
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                                   'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
     # --- Base Routes ---
     @app.route('/')
     def index():
@@ -86,12 +92,13 @@ def create_app(config_name=None):
             # Fetch dashboard stats if user is logged in
             try:
                 dashboard_stats = db_manager.get_dashboard_stats()
-                return render_template('index.html', stats=dashboard_stats)
+                academic_years = db_manager.execute_query("SELECT * FROM academic_years ORDER BY academic_year DESC", fetch_all=True)
+                return render_template('index.html', stats=dashboard_stats, academic_years=academic_years)
             except Exception as e:
                 app.logger.error(f"Error fetching dashboard stats: {e}", exc_info=True)
                 flash("Could not load dashboard statistics.", "error")
-                return render_template('index.html', stats=None) # Render even if stats fail
-        return render_template('index.html', stats=None) # Or redirect to login if preferred
+                return render_template('index.html', stats=None, academic_years=[]) # Render even if stats fail
+        return render_template('index.html', stats=None, academic_years=[]) # Or redirect to login if preferred
 
     # Redirects for auth routes - assuming an 'auth' blueprint handles actual logic
     # If your auth blueprint is named e.g. 'authentication', use 'authentication.login'
@@ -164,24 +171,6 @@ def create_app(config_name=None):
 
     return app
 
-def _create_missing_dirs(app):
-    """Creates standard directories if they don't exist. Called before app run."""
-    # Directories from file_structure.txt (some are created by Config.init_app)
-    required_dirs = [
-        'static/css', 'static/js',
-        # 'static/uploads', # Handled by Config.init_app
-        # 'static/uploads/tc_generated', # Handled by Config.init_app
-        'templates/auth', 'templates/errors',
-        'templates/academic_years', 'templates/courses',
-        'templates/fees', 'templates/reports',
-        'templates/students', 'templates/tc',
-        'db', 'models', 'routes', 'utils'
-    ]
-    for rel_path in required_dirs:
-        abs_path = os.path.join(app.root_path, rel_path)
-        os.makedirs(abs_path, exist_ok=True)
-    app.logger.info("Checked and created standard project directories.")
-
 def _setup_default_admin_if_needed(app_instance):
     """Checks and creates a default admin if none exists. Requires app context."""
     # This function should be called within an app_context
@@ -210,11 +199,13 @@ def _setup_default_admin_if_needed(app_instance):
 if __name__ == '__main__':
     app = create_app() # Uses 'default' config (DevelopmentConfig) by default
     
-    with app.app_context(): # Operations needing app context, like logging or config access
-        _create_missing_dirs(app)
+    with app.app_context(): # Operations needing app context, like logging
         # The database and admin setup is now part of create_app's logic when app context is available
+        pass # Keep the context open for potential future use or logging, satisfy syntax
         
-    # Run the app
-    # Host '0.0.0.0' makes it accessible externally (e.g., in a Docker container or LAN)
-    # Use a proper WSGI server (like Gunicorn or uWSGI) for production instead of Flask's dev server.
-    app.run(host='0.0.0.0', port=5000, debug=app.config.get('DEBUG', True))
+    # Run the app. We pass debug=True explicitly if DEBUG is set in config.
+    # The host and port are configured in your config.py file.
+    # For network access, set HOST to '0.0.0.0' in the development config.
+    app.run(host=app.config.get('HOST'),
+            port=app.config.get('PORT'),
+            debug=app.config.get('DEBUG'))

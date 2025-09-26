@@ -3,6 +3,7 @@ import threading
 from contextlib import contextmanager
 from flask import current_app, g
 import os
+from utils.caching import cache_manager, cached # Import both cache_manager and the simple 'cached' decorator
 
 class DatabaseManager:
     """Database connection manager with connection pooling"""
@@ -68,29 +69,52 @@ class DatabaseManager:
             raise # Re-raise the exception to be handled by Flask's error handlers or caller
 
     def get_dashboard_stats(self):
-        """Returns a dictionary of dashboard statistics."""
+        """Returns a dictionary of dashboard statistics, including chart data."""
         stats = {}
-        # Total students
-        row = self.execute_query("SELECT COUNT(*) as count FROM students", fetch_one=True)
-        stats['total_students'] = row['count'] if row else 0
+        
+        # Basic counts
+        stats['total_students'] = self.execute_query("SELECT COUNT(*) as count FROM students", fetch_one=True)['count'] or 0
+        stats['total_courses'] = self.execute_query("SELECT COUNT(*) as count FROM courses", fetch_one=True)['count'] or 0
+        stats['total_academic_years'] = self.execute_query("SELECT COUNT(*) as count FROM academic_years", fetch_one=True)['count'] or 0
+        stats['total_tcs'] = self.execute_query("SELECT COUNT(*) as count FROM transfer_certificates", fetch_one=True)['count'] or 0
 
-        # Total courses
-        row = self.execute_query("SELECT COUNT(*) as count FROM courses", fetch_one=True)
-        stats['total_courses'] = row['count'] if row else 0
-
-        # Total academic years
-        row = self.execute_query("SELECT COUNT(*) as count FROM academic_years", fetch_one=True)
-        stats['total_academic_years'] = row['count'] if row else 0
-
-        # Recent students (last 10)
+        # Recent students
         stats['recent_students'] = self.execute_query(
             """SELECT s.id, s.student_name, s.admission_no, s.date_of_admission, c.course_name
                FROM students s
                JOIN courses c ON s.course_id = c.id
                ORDER BY s.date_of_admission DESC
-               LIMIT 10""",
+               LIMIT 5""",
             fetch_all=True
         )
+
+        # Data for Student Distribution by Course Chart
+        student_dist_data = self.execute_query(
+            """SELECT c.course_name, COUNT(s.id) as student_count
+               FROM courses c
+               LEFT JOIN students s ON c.id = s.course_id
+               GROUP BY c.course_name
+               ORDER BY student_count DESC""",
+            fetch_all=True
+        )
+        stats['student_distribution'] = {
+            'labels': [row['course_name'] for row in student_dist_data],
+            'data': [row['student_count'] for row in student_dist_data]
+        }
+
+        # Data for Admissions by Academic Year Chart
+        admissions_by_year_data = self.execute_query(
+            """SELECT ay.academic_year, COUNT(s.id) as admission_count
+               FROM academic_years ay
+               LEFT JOIN students s ON ay.id = s.academic_year_id
+               GROUP BY ay.academic_year
+               ORDER BY ay.academic_year ASC""",
+            fetch_all=True
+        )
+        stats['admissions_by_year'] = {
+            'labels': [row['academic_year'] for row in admissions_by_year_data],
+            'data': [row['admission_count'] for row in admissions_by_year_data]
+        }
 
         return stats
 
@@ -126,14 +150,14 @@ def get_student_by_id(student_id):
     return db_manager.execute_query(query, (student_id,), fetch_one=True)
 
 def get_courses():
-    """Get all courses"""
+    """Get all courses, cached for 1 hour."""
     query = "SELECT * FROM courses ORDER BY course_name"
-    return db_manager.execute_query(query, fetch_all=True)
+    return cached(timeout=3600)(db_manager.execute_query)(query, fetch_all=True)
 
 def get_academic_years():
-    """Get all academic years"""
+    """Get all academic years, cached for 1 hour."""
     query = "SELECT * FROM academic_years ORDER BY academic_year DESC"
-    return db_manager.execute_query(query, fetch_all=True)
+    return cached(timeout=3600)(db_manager.execute_query)(query, fetch_all=True)
 
 def get_all_students(course_id=None, academic_year_id=None, order_by="s.admission_no ASC"):
     """
@@ -166,45 +190,66 @@ def get_all_students(course_id=None, academic_year_id=None, order_by="s.admissio
 
     return db_manager.execute_query(base_query, tuple(params), fetch_all=True)
 
-def get_fee_payments_for_report(course_id=None, academic_year_id=None):
+def get_students_for_admission_register(course_id=None, academic_year_id=None):
     """
-    Fetches fee payment records for reporting, with optional filters.
+    Fetches student data specifically for the Admission Register, including TC info.
     """
-    query = """
+    base_query = """
         SELECT
-            p.id as payment_id,
-            p.payment_date,
-            p.amount_paid,
-            p.transaction_id,
-            p.payment_method,
-            s.student_name,
-            s.admission_no,
-            c.course_name,
-            ay.academic_year
-        FROM student_fee_payments p
-        JOIN students s ON p.student_id = s.id
+            s.*, -- All student fields
+            c.course_name, c.course_code, c.type AS course_type, -- Course details
+            ay.academic_year, -- Academic year
+            tc.tc_number, tc.issue_date AS tc_issue_date -- TC details (aliased to avoid conflict)
+        FROM students s
         JOIN courses c ON s.course_id = c.id
         JOIN academic_years ay ON s.academic_year_id = ay.id
+        LEFT JOIN transfer_certificates tc ON s.id = tc.student_id
     """
     conditions = []
     params = []
 
-    # if start_date: # Removed date filters
-    #     conditions.append("p.payment_date >= ?")
-    #     params.append(start_date)
-    # if end_date: # Removed date filters
-    #     conditions.append("p.payment_date <= ?")
-    #     params.append(end_date)
-    if course_id:
+    if course_id is not None:
         conditions.append("s.course_id = ?")
         params.append(course_id)
-    if academic_year_id:
+    
+    if academic_year_id is not None:
         conditions.append("s.academic_year_id = ?")
         params.append(academic_year_id)
 
     if conditions:
-        query += " WHERE " + " AND ".join(conditions)
+        base_query += " WHERE " + " AND ".join(conditions)
     
+    base_query += " ORDER BY s.admission_no ASC" # Or other preferred order for the register
+    return db_manager.execute_query(base_query, tuple(params), fetch_all=True)
+
+def get_fee_payments_for_report(course_id=None, academic_year_id=None):
+    """
+    Fetches individual fee payment records for reporting, with optional filters.
+    """
+    query = """
+    SELECT
+        p.payment_date,
+        p.amount_paid,
+        p.transaction_id,
+        p.payment_method,
+        s.admission_no,
+        s.student_name,
+        c.course_name,
+        ay.academic_year
+    FROM student_fee_payments p
+    JOIN students s ON p.student_id = s.id
+    JOIN courses c ON s.course_id = c.id
+    JOIN academic_years ay ON s.academic_year_id = ay.id
+    WHERE 1=1
+    """
+    params = []
+    if course_id is not None:
+        query += " AND s.course_id = ?"
+        params.append(course_id)
+    if academic_year_id is not None:
+        query += " AND s.academic_year_id = ?"
+        params.append(academic_year_id)
+
     query += " ORDER BY p.payment_date ASC, s.admission_no ASC"
     return db_manager.execute_query(query, tuple(params), fetch_all=True)
 
@@ -219,6 +264,7 @@ def get_tc_issued_for_report(course_id=None, academic_year_id=None):
             s.student_name,
             s.admission_no,
             s.date_of_leaving,
+            s.date_of_admission, -- Added date_of_admission
             c.course_name,
             ay.academic_year
         FROM transfer_certificates tc

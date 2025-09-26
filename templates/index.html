@@ -103,6 +103,42 @@
     </div>
     {% endif %}
 
+    <!-- Charts -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Student Distribution
+                    </h5>
+                    <div class="col-auto">
+                        <select id="academicYearFilter" class="form-select form-select-sm">
+                            <option value="0">All Years</option>
+                            {% for year in academic_years %}
+                                <option value="{{ year.id }}">{{ year.academic_year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="studentDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Admissions by Academic Year
+                    </h5>
+                </div>
+                <div class="card-body" style="height: 320px;">
+                    <canvas id="admissionsByYearChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="row mb-4">
         <div class="col-12">
@@ -175,7 +211,7 @@
                                 <tr>
                                     <td>{{ student.admission_no }}</td>
                                     <td>{{ student.student_name }}</td>
-                                    <td>{{ student.course_code }}</td>
+                                    <td>{{ student.course_name }}</td>
                                     <td>{{ student.date_of_admission }}</td>
                                     <td>
                                         <a href="{{ url_for('students.view_student', student_id=student.id) }}" 
@@ -246,5 +282,15 @@
             </div>
         </div>
     </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if stats %}
+<script>
+    const studentDistData = {{ stats.student_distribution | tojson }};
+    const admissionsByYearData = {{ stats.admissions_by_year | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/dashboard_charts.js') }}"></script>
 {% endif %}
 {% endblock %}

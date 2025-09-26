@@ -1,0 +1,2 @@
+student_name,surname,father_name,mother_name,dob,gender,mobile_no,email,address,course_name,academic_year,date_of_admission,type,nationality,religion,caste,category
+John,Doe,Michael Doe,Jane Doe,01-01-2005,Male,1234567890,john.doe@example.com,"123 Main St, Anytown, USA",Computer Science,2023-2024,01-08-2023,Regular,American,Christianity,General,OPEN

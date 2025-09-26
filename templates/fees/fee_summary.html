@@ -33,27 +33,34 @@
     <div class="card-body">
         <!-- Filter Form -->
         <form method="GET" action="{{ url_for('fees.fee_summary') }}" class="mb-4 p-3 bg-light border rounded">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-4">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label for="search_student" class="form-label">Student Name/Adm.No</label>
+                    <input type="text" name="search_student" id="search_student" class="form-control form-control-sm" value="{{ search_student or '' }}" placeholder="Search student...">
+                </div>
+                <div class="col-md-3">
                     <label for="course_id" class="form-label">Filter by Course</label>
-                    <select name="course_id" id="course_id" class="form-select">
+                    <select name="course_id" id="course_id" class="form-select form-select-sm">
                         <option value="">All Courses</option>
                         {% for course in courses %}
                         <option value="{{ course.id }}" {% if course_filter == course.id %}selected{% endif %}>{{ course.course_name }} ({{ course.course_code }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="academic_year_id" class="form-label">Filter by Academic Year</label>
-                    <select name="academic_year_id" id="academic_year_id" class="form-select">
+                    <select name="academic_year_id" id="academic_year_id" class="form-select form-select-sm">
                         <option value="">All Academic Years</option>
                         {% for year in academic_years %}
                         <option value="{{ year.id }}" {% if year_filter == year.id %}selected{% endif %}>{{ year.academic_year }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filter</button>
+                <div class="col-md-2 mt-auto"> {/* mt-auto to align with other inputs if labels make them taller */}
+                    <button type="submit" class="btn btn-info btn-sm w-100"><i class="fas fa-filter me-1"></i> Filter</button>
+                </div>
+                <div class="col-md-1 mt-auto">
+                    <a href="{{ url_for('fees.fee_summary') }}" class="btn btn-outline-secondary btn-sm w-100" title="Clear Filters"><i class="fas fa-times"></i></a>
                 </div>
             </div>
         </form>

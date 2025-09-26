@@ -15,7 +15,7 @@ def format_datetime_filter(value, fmt=None):
     
     if isinstance(value, str):
         # Attempt to parse if it's a string, assuming YYYY-MM-DD format from DB
-        value = dt.strptime(value, current_app.config.get('DATE_FORMAT', '%Y-%m-%d'))
+        value = dt.strptime(value, '%Y-%m-%d') # Always parse from YYYY-MM-DD for DB values
     return value.strftime(fmt)
 
 def format_currency_filter(value, currency_symbol='₹'):

@@ -13,5 +13,10 @@ __pycache__/
 *.tmp
 *.swp
 prompt.txt
-"college.db" 
-"college.db" 
+college.db
+templates/tc_template.docx
+templates/Screenshot.png
+
+# Added by Gemini
+static/generated_tcs/
+static/uploads/

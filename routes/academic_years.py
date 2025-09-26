@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models.db_pool import db_manager, get_academic_years
 from utils.auth_helpers import admin_required
-from utils.validators import validate_academic_year_format
+from utils.validators import validate_academic_year_format # Import validate_academic_year_format
+from utils.caching import cache_manager, clear_cache # Import cache_manager and clear_cache
 
 academic_years_bp = Blueprint('academic_years', __name__)
 
@@ -35,6 +36,7 @@ def add_academic_year():
                     (year_str,),
                     commit=True
                 )
+                clear_cache() # Clear cache after adding an academic year
                 flash('Academic year added successfully!', 'success')
                 return redirect(url_for('academic_years.list_academic_years'))
                 
@@ -68,6 +70,7 @@ def edit_academic_year(year_id):
                     (year_str, year_id),
                     commit=True
                 )
+                clear_cache() # Clear cache after editing an academic year
                 flash('Academic year updated successfully!', 'success')
                 return redirect(url_for('academic_years.list_academic_years'))
                 
@@ -88,6 +91,7 @@ def delete_academic_year(year_id):
             flash('Cannot delete this academic year as students are associated with it.', 'danger')
         else:
             db_manager.execute_query("DELETE FROM academic_years WHERE id = ?", (year_id,), commit=True)
+            clear_cache() # Clear cache after deleting an academic year
             flash('Academic year deleted successfully.', 'success')
     except Exception as e:
         flash(f'An error occurred while deleting the academic year: {e}', 'danger')

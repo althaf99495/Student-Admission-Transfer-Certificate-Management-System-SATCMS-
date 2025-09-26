@@ -12,9 +12,10 @@ CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_name TEXT NOT NULL,
     course_full_name TEXT,
-    course_code TEXT NOT NULL UNIQUE CHECK (LENGTH(course_code) <= 10),
+    course_code TEXT NOT NULL UNIQUE CHECK (LENGTH(course_code) BETWEEN 2 AND 3), -- Allow 2 or 3 char course codes
     type TEXT NOT NULL CHECK (type IN ('PA', 'R', 'SF', 'SS')), /* PA=Private Aided, R=Regular, SF=Self-Finance, SS=Self-Supporting */
-    year INTEGER NOT NULL CHECK (year BETWEEN 2000 AND 2100) /* e.g., Curriculum year */
+    year INTEGER NOT NULL CHECK (year BETWEEN 2000 AND 2100), /* e.g., Curriculum year */
+    is_special_format INTEGER NOT NULL DEFAULT 0 CHECK (is_special_format IN (0, 1)) -- 0 for YYYYCCSSS, 1 for YYYYCCCSSS
 );
 
 -- Table: academic_years
@@ -32,8 +33,9 @@ CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
     academic_year_id INTEGER NOT NULL,
+    is_manual_admission_no INTEGER NOT NULL DEFAULT 0 CHECK (is_manual_admission_no IN (0, 1)), /* 0 for auto admission_no, 1 for manual. Both are 9 chars (YYYYCCSSS or YYYYCCCSS). */
     admission_no TEXT NOT NULL UNIQUE,
-    serial_no INTEGER NOT NULL, /* Serial number within a specific course and academic year for admission_no generation */
+    serial_no INTEGER NOT NULL, /* Serial component. Auto: 1-999 (std) or 1-99 (spcl). Manual: 0-999 (std) or 0-99 (spcl). Unique for course_id & academic_year_id. */
     type TEXT NOT NULL, /* e.g., New Admission, Readmission */
     student_name TEXT NOT NULL,
     surname TEXT,
@@ -103,9 +105,10 @@ CREATE TABLE IF NOT EXISTS student_fee_payments (
 -- Table: transfer_certificates
 CREATE TABLE IF NOT EXISTS transfer_certificates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL UNIQUE, /* Each student can have only one TC record */
+    student_id INTEGER NOT NULL UNIQUE,
     issue_date TEXT NOT NULL DEFAULT CURRENT_DATE CHECK (issue_date LIKE '____-__-__'),
     tc_number TEXT NOT NULL UNIQUE,
-    notes TEXT, /* Could store remarks specific to TC issuance */
-    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE /* If student deleted, TC record is removed */
+    notes TEXT,
+    promotion_status TEXT, -- This is defined
+    FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );

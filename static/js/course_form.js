@@ -54,4 +54,3 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 // Initialize all "Other" toggles on the page
-initializeOtherToggle('course_type', 'course_type_other');

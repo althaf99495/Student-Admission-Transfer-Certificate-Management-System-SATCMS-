@@ -8,12 +8,14 @@
         vertical-align: middle;
     }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 {% endblock %}
 
 {% block page_header %}
 <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
     <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tasks me-2"></i>Manage Fee Payments</h1>
     {# Optional: Link to go to student list to initiate a new payment #}
+    <a href="{{ url_for('fees.bulk_import_fees') }}" class="btn btn-success shadow-sm me-2"><i class="fas fa-file-csv me-1"></i> Bulk Import</a>
     <a href="{{ url_for('fees.select_student_to_record_payment') }}" class="btn btn-primary shadow-sm">
         <i class="fas fa-plus fa-sm me-2"></i>Record New Payment (Select Student)
     </a>
@@ -21,8 +23,55 @@
 {% endblock %}
 
 {% block content %}
-{# Add filtering options here if needed in the future (e.g., by student, date range) #}
 <div class="card shadow-sm">
+    <div class="card-header bg-light py-3">
+        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-filter me-2"></i>Filter Payments</h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('fees.manage_fee_payments') }}" class="mb-4 p-3 border rounded">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="search_student" class="form-label">Student Name/Adm.No</label>
+                    <input type="text" name="search_student" id="search_student" class="form-control" value="{{ search_student or '' }}" placeholder="Search student...">
+                </div>
+                <div class="col-md-3">
+                    <label for="course_id" class="form-label">Course</label>
+                    <select name="course_id" id="course_id" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if course_id_filter == course.id %}selected{% endif %}>{{ course.course_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="academic_year_id" class="form-label">Academic Year</label>
+                    <select name="academic_year_id" id="academic_year_id" class="form-select">
+                        <option value="">All Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if academic_year_id_filter == year.id %}selected{% endif %}>{{ year.academic_year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                 <div class="col-md-3">
+                    <label for="start_date" class="form-label">Payment Date From</label>
+                    <input type="text" name="start_date" id="start_date" class="form-control datepicker" value="{{ start_date_filter or '' }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">Payment Date To</label>
+                    <input type="text" name="end_date" id="end_date" class="form-control datepicker" value="{{ end_date_filter or '' }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-info w-100"><i class="fas fa-search me-1"></i> Filter Payments</button>
+                </div>
+                 <div class="col-md-3">
+                    <a href="{{ url_for('fees.manage_fee_payments') }}" class="btn btn-outline-secondary w-100"><i class="fas fa-times me-1"></i> Clear Filters</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
     <div class="card-header bg-light py-3">
         <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-alt me-2"></i>All Recorded Payments</h6>
     </div>
@@ -35,6 +84,8 @@
                         <th>Pay ID</th>
                         <th>Student Name</th>
                         <th>Adm. No.</th>
+                        <th>Course</th>
+                        <th>Academic Year</th>
                         <th class="text-end">Amount Paid</th>
                         <th>Payment Date</th>
                         <th>Method</th>
@@ -52,6 +103,8 @@
                             </a>
                         </td>
                         <td><span class="badge bg-info text-dark">{{ pmt['admission_no'] }}</span></td>
+                        <td>{{ pmt['course_name'] or 'N/A' }}</td>
+                        <td>{{ pmt['academic_year'] or 'N/A' }}</td>
                         <td class="text-end fw-bold">{{ pmt['amount_paid'] | currency }}</td>
                         <td>{{ pmt['payment_date'] | datetime }}</td> {# Assuming you have a datetime filter #}
                         <td>{{ pmt['payment_method'] }}</td>
@@ -82,4 +135,15 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr(".datepicker", {
+            dateFormat: "Y-m-d"
+        });
+    });
+</script>
 {% endblock %}

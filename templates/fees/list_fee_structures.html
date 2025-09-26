@@ -10,6 +10,38 @@
     </a>
 </div>
 
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light py-3">
+        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-filter me-2"></i>Filter Fee Structures</h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('fees.list_fee_structures') }}" class="p-3 border rounded">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="course_id" class="form-label">Course</label>
+                    <select name="course_id" id="course_id" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if course_id_filter == course.id %}selected{% endif %}>{{ course.course_name }} ({{ course.course_code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="academic_year_id" class="form-label">Academic Year</label>
+                    <select name="academic_year_id" id="academic_year_id" class="form-select">
+                        <option value="">All Years</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if academic_year_id_filter == year.id %}selected{% endif %}>{{ year.academic_year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2"><button type="submit" class="btn btn-info w-100"><i class="fas fa-search me-1"></i> Filter</button></div>
+                <div class="col-md-2"><a href="{{ url_for('fees.list_fee_structures') }}" class="btn btn-outline-secondary w-100"><i class="fas fa-times me-1"></i> Clear</a></div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card shadow-sm">
     <div class="card-header bg-light py-3">
         <h6 class="m-0 fw-bold text-primary"><i class="fas fa-list-alt me-2"></i>Existing Fee Structures</h6>
@@ -21,7 +53,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>ID</th>
-                        <th>Course Name</th>
+                        <th>Course (Code)</th>
                         <th>Academic Year</th>
                         <th class="text-end">Total Fee</th>
                         <th class="text-center">Actions</th>
@@ -31,7 +63,7 @@
                     {% for fs in fee_structures %}
                     <tr>
                         <td>{{ fs['id'] }}</td>
-                        <td>{{ fs['course_name'] }}</td>
+                        <td>{{ fs['course_name'] }} ({{ fs.course_code }})</td>
                         <td>{{ fs['academic_year'] }}</td>
                         <td class="text-end">₹{{ "%.2f"|format(fs['total_fee']) }}</td>
                         <td class="text-center">

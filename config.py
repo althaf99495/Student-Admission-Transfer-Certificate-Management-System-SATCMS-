@@ -1,8 +1,12 @@
 """
 Configuration settings for SATCMS Application
 """
+from dotenv import load_dotenv # Import load_dotenv
 import os
 import secrets
+
+# Load environment variables from .env file if it exists
+load_dotenv()
 
 class Config:
     """Base configuration class"""
@@ -31,7 +35,7 @@ class Config:
     # Application settings
     APP_NAME = "Student Admission & Transfer Certificate Management System"
     APP_VERSION = "1.0.0"
-    COLLEGE_NAME = "My college" # Add a default college name
+    COLLEGE_NAME = "SRI VENKATESWARA UNIVERSITY, TIRUPATHI" # Add a default college name
 
     # Pagination settings
     STUDENTS_PER_PAGE = 25
@@ -42,8 +46,32 @@ class Config:
     TC_OUTPUT_PATH = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'tc_generated')
 
     # Date format settings
-    DATE_FORMAT = '%Y-%m-%d'
-    DISPLAY_DATE_FORMAT = '%d/%m/%Y'
+    # NOTE: The DATE_FORMAT is used for parsing date strings from forms.
+    # Storing dates in 'DD-MM-YYYY' format in the database is not recommended as it breaks sorting.
+    # The ideal approach is to parse this format in the view and convert to 'YYYY-MM-DD' for storage.
+    DATE_FORMAT = '%d-%m-%Y'
+    DISPLAY_DATE_FORMAT = '%d-%m-%Y'
+
+    # Email settings (configure these for your SMTP server)
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.example.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587)) # Default for TLS
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1', 't']
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() in ['true', '1', 't'] # Usually one or the other
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') # e.g., 'your-email@example.com'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') # e.g., 'your-email-password'
+    MAIL_DEFAULT_SENDER_NAME = os.environ.get('MAIL_DEFAULT_SENDER_NAME', 'College Administration')
+    MAIL_DEFAULT_SENDER_EMAIL = os.environ.get('MAIL_DEFAULT_SENDER_EMAIL', 'noreply@example.com') # Default sender address
+
+    # Allowed payment methods for fee payments (from schema.sql)
+    ALLOWED_PAYMENT_METHODS = ['Cash', 'Online', 'Cheque', 'DD', 'Card', 'UPI', 'Bank Transfer', 'Other']
+
+    # Caching settings (for Flask-Caching)
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_HOST = "localhost"
+    CACHE_REDIS_PORT = 6379
+    CACHE_REDIS_DB = 0
+    CACHE_REDIS_PASSWORD = None
+    CACHE_DEFAULT_TIMEOUT = 300 # Default cache timeout in seconds (5 minutes)
 
     @staticmethod
     def init_app(app):
@@ -60,6 +88,8 @@ class DevelopmentConfig(Config):
     DEBUG = True
     # For stable CSRF tokens during development with auto-reload
     SECRET_KEY = 'dev_secret_this_is_not_for_production_!@#' # Replace with your own static key
+    HOST = '0.0.0.0'  # Use '0.0.0.0' to be accessible on your network
+    PORT = 5001       # Or your preferred port
     TESTING = False
 
 class ProductionConfig(Config):

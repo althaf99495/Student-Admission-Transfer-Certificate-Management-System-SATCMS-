@@ -17,10 +17,10 @@
         <div class="row justify-content-center">
             <div class="col-md-10">
                 <dl class="row">
-                    {% for label, value in display_items %}
+                {% for label, value in display_items %}
                     <dt class="col-sm-5 text-sm-end fw-medium">{{ label }}:</dt>
                     <dd class="col-sm-7">{{ value | nl2br }}</dd>
-                    {% endfor %}
+                {% endfor %}
                 </dl>
             </div>
         </div>

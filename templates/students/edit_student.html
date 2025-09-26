@@ -187,9 +187,13 @@
                     <label for="caste" class="form-label">Caste Category</label>
                      <select class="form-select" id="caste" name="caste">
                         <option value="">Select Caste Category...</option>
-                        {% set castes = ["General", "OBC", "SC", "ST"] %}
-                        <option value="General" {% if student.caste == 'General' %}selected{% endif %}>General</option>
-                        <option value="OBC" {% if student.caste == 'OBC' %}selected{% endif %}>OBC</option>
+                        {% set castes = ["OC", "OBC", "BC-A", "BC-B", "BC-C", "BC-D", "BC-E", "SC", "ST"] %}
+                        <option value="OC" {% if student.caste == 'OC' %}selected{% endif %}>OC</option>
+                        <option value="BC-A" {% if student.caste == 'BC-A' %}selected{% endif %}>BC-A</option>
+                        <option value="BC-B" {% if student.caste == 'BC-B' %}selected{% endif %}>BC-B</option>
+                        <option value="BC-C" {% if student.caste == 'BC-C' %}selected{% endif %}>BC-C</option>
+                        <option value="BC-D" {% if student.caste == 'BC-D' %}selected{% endif %}>BC-D</option>
+                        <option value="BC-E" {% if student.caste == 'BC-E' %}selected{% endif %}>BC-E</option>
                         <option value="SC" {% if student.caste == 'SC' %}selected{% endif %}>SC</option>
                         <option value="ST" {% if student.caste == 'ST' %}selected{% endif %}>ST</option>
                         <option value="Other" {% if student.caste and student.caste not in castes %}selected{% endif %}>Other</option>
@@ -215,9 +219,6 @@
                     <input type="text" class="form-control mt-2 {% if not (student.mother_tongue and student.mother_tongue not in languages) %}d-none{% endif %}" id="mother_tongue_other" name="mother_tongue_other" placeholder="Enter Mother Tongue" value="{% if student.mother_tongue and student.mother_tongue not in languages %}{{ student.mother_tongue }}{% endif %}">
                 </div>
                  <div class="col-md-4 mb-3">
-                    <label for="conduct" class="form-label">Conduct</label>
-                    <input type="text" class="form-control" id="conduct" name="conduct" value="{{ student.conduct or 'Good' }}">
-                </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">

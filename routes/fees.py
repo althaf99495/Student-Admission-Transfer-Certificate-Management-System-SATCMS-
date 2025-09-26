@@ -1,28 +1,55 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, make_response, current_app, send_from_directory
 from models.db_pool import db_manager, get_student_by_id, get_courses, get_academic_years
 from utils.auth_helpers import admin_required
-from datetime import datetime
+from utils.pdf_utils import ReportGenerator # Import ReportGenerator
+from datetime import datetime, date # Import date
 import sqlite3
+import os # For path operations
+import csv
+import io
+from flask_wtf import FlaskForm
+from wtforms import FileField, SubmitField
+from wtforms.validators import DataRequired
+
+class CSVUploadForm(FlaskForm):
+    csv_file = FileField('CSV File', validators=[DataRequired()])
+    submit = SubmitField('Import Payments')
 
 fees_bp = Blueprint('fees', __name__)
 
 @fees_bp.route('/student/<int:student_id>')
 @admin_required
 def view_student_fees(student_id):
-    """Displays the fee history for a single student."""
+    """Displays the fee history for a single student, with date filtering."""
+    start_date_filter = request.args.get('start_date', '').strip()
+    end_date_filter = request.args.get('end_date', '').strip()
+
     student = get_student_by_id(student_id)
     if not student:
         flash('Student not found.', 'danger')
         return redirect(url_for('students.list_students'))
 
-    fee_records = db_manager.execute_query(
-        "SELECT * FROM student_fee_payments WHERE student_id = ? ORDER BY payment_date DESC",
-        (student_id,),
-        fetch_all=True
-    )
+    query = "SELECT * FROM student_fee_payments WHERE student_id = ?"
+    params = [student_id]
+    conditions = []
+
+    if start_date_filter:
+        conditions.append("payment_date >= ?")
+        params.append(start_date_filter)
+    if end_date_filter:
+        conditions.append("payment_date <= ?")
+        params.append(end_date_filter)
+
+    if conditions:
+        query += " AND " + " AND ".join(conditions)
+    
+    query += " ORDER BY payment_date DESC"
+        
+    fee_records = db_manager.execute_query(query, tuple(params), fetch_all=True)
     total_paid = sum(r['amount_paid'] for r in fee_records) if fee_records else 0
 
-    return render_template('fees/view_student_fees.html', student=student, fee_records=fee_records, total_paid=total_paid)
+    return render_template('fees/view_student_fees.html', student=student, fee_records=fee_records, total_paid=total_paid,
+                           start_date_filter=start_date_filter, end_date_filter=end_date_filter)
 
 @fees_bp.route('/record-payment/<int:student_id>', methods=['GET', 'POST'])
 @admin_required
@@ -92,13 +119,13 @@ def record_payment(student_id):
                     commit=True
                 )
                 flash('Fee payment recorded successfully.', 'success')
-                return redirect(url_for('fees.view_student_fees', student_id=student_id))
+                return redirect(url_for('students.view_student', student_id=student_id) + '#fees')
             except Exception as e:
                 flash(f'Failed to record payment: {e}', 'danger')
         
         return render_template('fees/record_payment.html', 
                                student=student, 
-                               today_date=datetime.now().strftime('%Y-%m-%d'), 
+                               today_date=datetime.now().strftime('%Y-%m-%d'),
                                fee_structure_missing=fee_structure_missing,
                                form_data=request.form)
 
@@ -167,15 +194,52 @@ def select_student_to_view_fees():
 @fees_bp.route('/manage-payments')
 @admin_required
 def manage_fee_payments():
-    """Displays all fee payments with options to manage them."""
-    payments = db_manager.execute_query(
-        """SELECT p.*, s.student_name, s.admission_no
+    """Displays all fee payments with filtering and options to manage them."""
+    search_student = request.args.get('search_student', '').strip()
+    course_id_filter = request.args.get('course_id', type=int)
+    academic_year_id_filter = request.args.get('academic_year_id', type=int)
+    start_date_filter = request.args.get('start_date', '').strip()
+    end_date_filter = request.args.get('end_date', '').strip()
+
+    query = """SELECT p.*, s.student_name, s.admission_no, c.course_name, ay.academic_year
            FROM student_fee_payments p
            JOIN students s ON p.student_id = s.id
-           ORDER BY p.payment_date DESC, p.id DESC""",
-        fetch_all=True
-    )
-    return render_template('fees/manage_fee_payments.html', payments=payments)
+           JOIN courses c ON s.course_id = c.id
+           JOIN academic_years ay ON s.academic_year_id = ay.id
+    """
+    conditions = []
+    params = []
+
+    if search_student:
+        conditions.append("(s.student_name LIKE ? OR s.admission_no LIKE ?)")
+        params.extend([f'%{search_student}%', f'%{search_student}%'])
+    if course_id_filter:
+        conditions.append("s.course_id = ?")
+        params.append(course_id_filter)
+    if academic_year_id_filter:
+        conditions.append("s.academic_year_id = ?")
+        params.append(academic_year_id_filter)
+    if start_date_filter:
+        conditions.append("p.payment_date >= ?")
+        params.append(start_date_filter)
+    if end_date_filter:
+        conditions.append("p.payment_date <= ?")
+        params.append(end_date_filter)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    
+    query += " ORDER BY p.payment_date DESC, p.id DESC"
+    
+    payments = db_manager.execute_query(query, tuple(params), fetch_all=True)
+    all_courses = get_courses()
+    all_academic_years = get_academic_years()
+
+    return render_template('fees/manage_fee_payments.html', payments=payments,
+                           courses=all_courses, academic_years=all_academic_years,
+                           search_student=search_student, course_id_filter=course_id_filter,
+                           academic_year_id_filter=academic_year_id_filter,
+                           start_date_filter=start_date_filter, end_date_filter=end_date_filter)
 
 @fees_bp.route('/fee-structures')
 @admin_required
@@ -368,6 +432,7 @@ def fee_summary():
     """Displays a summary of fees for all students."""
     course_filter = request.args.get('course_id', type=int)
     year_filter = request.args.get('academic_year_id', type=int)
+    search_student = request.args.get('search_student', '').strip()
 
     params = []
     where_clauses = []
@@ -399,6 +464,10 @@ def fee_summary():
     if year_filter:
         where_clauses.append("s.academic_year_id = ?")
         params.append(year_filter)
+    if search_student:
+        where_clauses.append("(s.student_name LIKE ? OR s.admission_no LIKE ?)")
+        params.extend([f'%{search_student}%', f'%{search_student}%'])
+
 
     if where_clauses:
         query += " WHERE " + " AND ".join(where_clauses)
@@ -415,4 +484,127 @@ def fee_summary():
     
     return render_template('fees/fee_summary.html', student_fee_summary=student_fee_summary,
                            courses=courses, academic_years=academic_years,
-                           course_filter=course_filter, year_filter=year_filter)
+                           course_filter=course_filter, year_filter=year_filter,
+                           search_student=search_student)
+
+@fees_bp.route('/download-fee-history/<int:student_id>')
+@admin_required
+def download_fee_history(student_id):
+    """Generates and serves a PDF file of the student's fee history."""
+    student = get_student_by_id(student_id)
+    if not student:
+        flash('Student not found.', 'danger')
+        return redirect(url_for('students.list_students'))
+
+    try:
+        payments_query_result = db_manager.execute_query(
+            """SELECT p.*, fs.total_fee
+               FROM student_fee_payments p
+               LEFT JOIN fee_structure fs ON p.fee_structure_id = fs.id
+               WHERE p.student_id = ?
+               ORDER BY p.payment_date ASC""",
+            (student_id,),
+            fetch_all=True
+        )
+        
+        # Convert sqlite3.Row objects to plain dicts for pdf_utils
+        payments = [dict(p) for p in payments_query_result]
+
+        total_fee_for_student = payments[0]['total_fee'] if payments and payments[0].get('total_fee') is not None else 0
+        total_paid_by_student = sum(p['amount_paid'] for p in payments) if payments else 0
+        balance_due = total_fee_for_student - total_paid_by_student
+
+        summary_data = {
+            'total_fee': total_fee_for_student,
+            'total_paid': total_paid_by_student,
+            'balance_due': balance_due
+        }
+
+        report_generator = ReportGenerator()
+        pdf_filepath = report_generator.generate_student_fee_history_pdf(dict(student), payments, summary_data)
+        
+        directory = os.path.dirname(pdf_filepath)
+        filename = os.path.basename(pdf_filepath)
+        
+        return send_from_directory(directory, filename, as_attachment=True, mimetype='application/pdf')
+
+    except Exception as e:
+        current_app.logger.error(f"Error generating fee history PDF for student {student_id}: {e}", exc_info=True)
+        flash(f"Could not generate PDF report: {e}", "danger")
+        return redirect(url_for('students.view_student', student_id=student_id))
+
+def _record_fee_payment_from_csv(cursor, row_data):
+    try:
+        admission_no = row_data.get('admission_no')
+        student = db_manager.execute_query("SELECT id, fee_structure_id FROM students WHERE admission_no = ?", (admission_no,), fetch_one=True)
+        if not student:
+            raise ValueError(f"Student with admission number '{admission_no}' not found.")
+
+        if not student['fee_structure_id']:
+            raise ValueError(f"Student with admission number '{admission_no}' is not linked to a fee structure.")
+
+        amount = float(row_data.get('amount_paid'))
+        payment_date = row_data.get('payment_date')
+        payment_method = row_data.get('payment_method')
+        transaction_id = row_data.get('transaction_id')
+        remarks = row_data.get('remarks')
+
+        if not amount or amount <= 0:
+            raise ValueError('Invalid amount.')
+        elif not payment_date:
+            raise ValueError('Payment date is required.')
+        elif not payment_method:
+            raise ValueError('Payment method is required.')
+
+        transaction_id_to_db = transaction_id.strip() if transaction_id else None
+
+        cursor.execute(
+            """INSERT INTO student_fee_payments 
+               (student_id, fee_structure_id, amount_paid, payment_date, transaction_id, payment_method, remarks)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (student['id'], student['fee_structure_id'], amount, payment_date, transaction_id_to_db, payment_method, remarks)
+        )
+
+    except (ValueError, TypeError) as e:
+        raise e
+
+@fees_bp.route('/bulk_import_fees', methods=['GET', 'POST'])
+@admin_required
+def bulk_import_fees():
+    form = CSVUploadForm()
+    if form.validate_on_submit():
+        csv_file = form.csv_file.data
+        errors = []
+        success_count = 0
+        
+        try:
+            with io.TextIOWrapper(csv_file, encoding='utf-8') as text_file:
+                csv_reader = csv.DictReader(text_file)
+                payments_data = list(csv_reader)
+
+            with db_manager.get_db_cursor(commit=True) as cursor:
+                for i, row in enumerate(payments_data):
+                    try:
+                        _record_fee_payment_from_csv(cursor, row)
+                        success_count += 1
+                    except (ValueError, TypeError) as e:
+                        errors.append(f"Row {i+2}: {e}")
+
+            if errors:
+                flash(f'Import completed with {len(errors)} errors.', 'warning')
+                for error in errors:
+                    flash(error, 'danger')
+            else:
+                flash(f'Successfully imported {success_count} fee payments.', 'success')
+
+        except Exception as e:
+            flash(f'An unexpected error occurred: {e}', 'danger')
+            
+        return redirect(url_for('fees.manage_fee_payments'))
+        
+    return render_template('fees/bulk_import.html', form=form)
+
+@fees_bp.route('/download_sample_fee_csv')
+@admin_required
+def download_sample_fee_csv():
+    return send_from_directory('static', 'sample_fee_import.csv', as_attachment=True)

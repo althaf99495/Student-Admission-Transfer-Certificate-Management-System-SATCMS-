@@ -9,6 +9,12 @@ from functools import wraps
 import time
 from flask import current_app # Used for logging and app context awareness
 import hashlib # For more robust cache key generation
+from flask_caching import Cache
+
+# Create a cache manager instance.
+# This instance will be configured and initialized with the Flask app
+# in the application factory (create_app).
+cache_manager = Cache()
 
 # Simple in-memory cache (dictionary-based)
 _cache = {} # Stores cached data: {'cache_key': data}
@@ -117,88 +123,19 @@ def cached(timeout: int = DEFAULT_TIMEOUT, cache_key_prefix: str = "view_cache_"
         return wrapper
     return decorator
 
-# --- Example: Flask-Caching integration placeholder ---
-# from flask_caching import Cache
-# cache_manager = Cache() # This would be initialized with the app
+def init_app_cache(app):
+    """Initialize the cache manager with the Flask app."""
+    # Default to Redis if not explicitly set
+    app.config.setdefault("CACHE_TYPE", "RedisCache")
+    app.config.setdefault("CACHE_REDIS_HOST", "localhost")
+    app.config.setdefault("CACHE_REDIS_PORT", 6379)
+    app.config.setdefault("CACHE_REDIS_DB", 0)
+    app.config.setdefault("CACHE_REDIS_PASSWORD", None)
 
-# def init_app_cache(app):
-#     """Initialize a more robust cache with Flask app (e.g., Flask-Caching)."""
-#     # Example config for simple cache (filesystem) - replace with Redis/Memcached for production
-#     # app.config.setdefault("CACHE_TYPE", "FileSystemCache") # Or "SimpleCache" for in-memory like this one
-#     # app.config.setdefault("CACHE_DIR", os.path.join(app.root_path, "cache"))
-#     # os.makedirs(app.config["CACHE_DIR"], exist_ok=True)
-#     # cache_manager.init_app(app)
-#     if current_app:
-#         current_app.logger.info("Simple in-memory caching is active. For production, consider Flask-Caching with Redis/Memcached.")
+    cache_manager.init_app(app)
 
-
-if __name__ == '__main__':
-    # Basic test for the simple in-memory cache (simulating Flask app context for logger)
-    class MockApp:
-        class MockLogger:
-            def debug(self, msg): print(f"DEBUG: {msg}")
-            def info(self, msg): print(f"INFO: {msg}")
-        logger = MockLogger()
-        debug = True
-
-    # Simulate current_app for testing the logger calls
-    _original_current_app = current_app
-    # current_app = MockApp() # This is tricky to mock globally, usually done with app_context
-
-    print("--- Testing Simple In-Memory Cache ---")
-
-    @cached(timeout=1, cache_key_prefix="test_func_")
-    def my_test_function(param1, param2="default"):
-        # This function won't have current_app in this __main__ block
-        # unless explicitly pushed. For decorator tests, it's better to test within Flask context.
-        print(f"Executing my_test_function({param1}, {param2})...")
-        time.sleep(0.1) # Simulate work
-        return f"Result for {param1}-{param2}"
-
-    # To properly test with current_app logging, you'd need a Flask app context
-    # For simplicity, we'll test the direct cache functions here primarily.
-    
-    print("Testing direct cache set/get:")
-    set_in_cache("mykey1", "myvalue1", timeout=1)
-    print(f"Get 'mykey1': {get_from_cache('mykey1')}") # HIT
-    time.sleep(1.1)
-    print(f"Get 'mykey1' after expiry: {get_from_cache('mykey1')}") # EXPIRED, then MISS
-
-    set_in_cache("mykey2", "myvalue2_no_expire", timeout=0)
-    print(f"Get 'mykey2': {get_from_cache('mykey2')}") # HIT
-    time.sleep(0.1)
-    print(f"Get 'mykey2' again: {get_from_cache('mykey2')}") # HIT (should not expire)
-
-
-    print("\nTesting @cached decorator (logging might not appear if no app_context):")
-    # Simulate some calls to the decorated function
-    # Note: The logging inside the decorator relies on current_app.
-    # If current_app is None, logging calls within the decorator might be skipped or error.
-    # This is a limitation of testing Flask-dependent code outside a Flask context.
-    
-    # This test will work for functionality but not for logger output unless current_app is mocked.
-    try:
-        print(my_test_function("Arg1"))  # Executes, caches
-        print(my_test_function("Arg1"))  # Hits cache
-        print(my_test_function("Arg2"))  # Executes, caches
-        print(my_test_function("Arg1", param2="override")) # Executes, caches
-        print(my_test_function("Arg1", param2="override")) # Hits cache
-
-        print("Waiting for cache to expire (1 sec for 'Arg1')...")
-        time.sleep(1.1)
-        print(my_test_function("Arg1")) # Executes again (cache expired)
-        print(my_test_function("Arg2")) # Should still hit cache if its timeout hasn't passed
-                                        # (it will, as it also had 1s timeout)
-
-    except Exception as e:
-        print(f"Error during decorated function test: {e}")
-
-
-    clear_cache("mykey2")
-    print(f"Get 'mykey2' after specific clear: {get_from_cache('mykey2')}") # MISS
-
-    clear_cache()
-    print("Entire cache cleared.")
-    print(f"Get 'mykey1' after full clear: {get_from_cache('mykey1')}") # MISS
-
-    # current_app = _original_current_app # Restore
+    app.logger.info(f"Flask-Caching initialized with type: {app.config.get('CACHE_TYPE')}")
+    if app.config["CACHE_TYPE"].lower() == "simplecache":
+        app.logger.warning("Using SimpleCache (in-memory). NOT suitable for production!")
+    elif app.config["CACHE_TYPE"].lower() == "rediscache":
+        app.logger.info("Redis cache enabled ✅")

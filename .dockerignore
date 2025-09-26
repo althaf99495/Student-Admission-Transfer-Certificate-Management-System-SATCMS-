@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.log
+*.db
+*.db-journal
+backups/
+flask_session/
+docker-compose.yml
+.dockerignore
+Dockerfile
+*.bat

@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
@@ -58,10 +60,10 @@
         }
         
         .college-subtitle {
-            font-size: 1.1rem;
-            font-weight: 400;
+            font-size: 1.3rem;
+            font-weight: 500;
             margin: 0.25rem 0 0 0;
-            opacity: 0.95;
+            opacity: 1;
         }
         
         .nav-link {
@@ -123,9 +125,9 @@
     <div class="university-header">
         <div class="container">
             <h1 class="university-title">
-                <i class="fas fa-university me-3"></i>my University
+                <i class="fas fa-university me-3"></i>SRI VENKATESWARA UNIVERSITY :: TIRUPATI
             </h1>
-            <p class="college-subtitle">my college</p>
+            <p class="college-subtitle">COLLEGE OF COMMERCE, MANAGEMENT AND COMPUTER SCIENCE</p>
             <p class="app-name-subtitle">{{ app_name or 'SATCMS' }}</p>
         </div>
     </div>
@@ -151,7 +153,7 @@
                             </a>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('students.') %}active{% endif %}" href="#" id="studentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('students.') %}active{% endif %}" href="#" id="studentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-users me-1"></i>Students
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="studentsDropdown">
@@ -164,7 +166,7 @@
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('courses.') %}active{% endif %}" href="#" id="coursesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('courses.') %}active{% endif %}" href="#" id="coursesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-book me-1"></i>Courses
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="coursesDropdown">
@@ -177,7 +179,7 @@
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('academic_years.') %}active{% endif %}" href="#" id="academicDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('academic_years.') %}active{% endif %}" href="#" id="academicDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-calendar me-1"></i>Academic Years
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="academicDropdown">
@@ -190,7 +192,7 @@
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('fees.') %}active{% endif %}" href="#" id="feesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('fees.') %}active{% endif %}" href="#" id="feesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-money-check-alt me-1"></i>Fees
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="feesDropdown">
@@ -216,12 +218,12 @@
                             </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint.startswith('tc.') %}active{% endif %}" {% if request.endpoint.startswith('tc.') %}aria-current="page"{% endif %} href="{{ url_for('tc.select_student') }}">
+                            <a class="nav-link {% if request.endpoint and request.endpoint.startswith('tc.') %}active{% endif %}" {% if request.endpoint and request.endpoint.startswith('tc.') %}aria-current="page"{% endif %} href="{{ url_for('tc.select_student') }}">
                                 <i class="fas fa-certificate me-1"></i>Transfer Certificate
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.endpoint.startswith('reports.') %}active{% endif %}" {% if request.endpoint.startswith('reports.') %}aria-current="page"{% endif %} href="{{ url_for('reports.index') }}">
+                            <a class="nav-link {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}" {% if request.endpoint and request.endpoint.startswith('reports.') %}aria-current="page"{% endif %} href="{{ url_for('reports.index') }}">
                                 <i class="fas fa-chart-bar me-1"></i>Reports
                             </a>
                         </li>
@@ -293,20 +295,18 @@
             <div class="row">
                 <div class="col-md-6 text-md-start">
                     <p class="mb-1">
-                        <strong>my University</strong> - my College 
+                        <strong>SV University</strong> - SVU College of CM & CS
                     </p>
                     <p class="mb-0 opacity-75">
                         &copy; {{ current_year }} {{ app_name or 'SATCMS' }} - Student Management System
                     </p>
                 </div>
-                <div class="col-md-6 text-md-end">
                     <p class="mb-1">
-                        <i class="fas fa-code me-1"></i>Developed by S.Althaf
+                        <i class="fas fa-code me-1"></i>Developed by SHAIK Althaf
                     </p>
                     <p class="mb-0 opacity-75">
                         M.Sc Computer Science (2024-2026)
                     </p>
-                    
             <style>
                 .app-name-subtitle {
                     font-size: 0.9rem;

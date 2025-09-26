@@ -1,0 +1,11 @@
+#
+# This file contains the top-level dependencies for the application.
+# Use 'pip-compile' from the 'pip-tools' package to generate
+# the requirements.txt file for reproducible builds.
+#
+# pip install pip-tools
+# pip-compile requirements.in
+#
+Flask         # Web framework
+python-docx   # For creating .docx files
+num2words     # To convert numbers to words
