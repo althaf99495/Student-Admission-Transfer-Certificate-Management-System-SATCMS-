@@ -174,8 +174,8 @@ Follow these steps to get the SATCMS application running on your local machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-    cd YOUR_REPOSITORY_NAME
+    git clone https://github.com/althaf99495/Student-Admission-Transfer-Certificate-Management-System-SATCMS-.git
+    cd Student-Admission-Transfer-Certificate-Management-System-SATCMS
     ```
     *(Replace `YOUR_USERNAME` and `YOUR_REPOSITORY_NAME` with your actual GitHub details)*
 
@@ -257,7 +257,7 @@ Follow these steps to get the SATCMS application running on your local machine.
 ## License
 
 This project is licensed under the MIT License.
-*(Ensure you have a `LICENSE` file in the root of your project containing the MIT License text. You can find templates online, for example, at opensource.org/licenses/MIT. Remember to replace `[year]` and `[fullname]` in the license text.)*
+
 
 ---
 
